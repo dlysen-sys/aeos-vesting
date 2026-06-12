@@ -57,7 +57,7 @@ contract LIQUIDITY is Ownable, ReentrancyGuard, IERC721Receiver {
         address token1
     );
     event Deposited(address indexed token, address indexed sender, uint256 amount);
-    event DebugAddLiquidity(string step, uint256 value1, uint256 value2);
+
     constructor()  {}
 
     function addLiquidityUSDT(uint256 usdtAmount, uint24 slippageBps) public nonReentrant returns (uint256) {
@@ -167,21 +167,10 @@ contract LIQUIDITY is Ownable, ReentrancyGuard, IERC721Receiver {
             // Ignore errors, fallback to spot
             twapPrice = 0;
         }
-        // If TWAP is zero or pool too shallow, fallback to spot price
-        if (twapPrice == 0) {
-            uint256 token0Balance = IERC20(TOKEN0).balanceOf(address(POOL));
-            uint256 token1Balance = IERC20(TOKEN1).balanceOf(address(POOL));
-            // Avoid division by zero
-            if (token0Balance == 0 || token1Balance == 0) {
-                // Fallback to 1:1 price
-                priceX96 = 1 << 96;
-            } else {
-                // priceX96 = token1 per token0
-                priceX96 = FullMath.mulDiv(token1Balance, 1 << 96, token0Balance);
-            }
-        } else {
-            priceX96 = twapPrice;
-        }
+        // If TWAP calculation fails, revert instead of falling back to manipulable spot price
+        // ⚠️ SECURITY: Spot price is trivially manipulable via flash loans. Only use TWAP.
+        require(twapPrice != 0, "TwapPriceFailed: Oracle unavailable");
+        priceX96 = twapPrice;
     }
 
     function swapUSDT(
@@ -245,9 +234,7 @@ contract LIQUIDITY is Ownable, ReentrancyGuard, IERC721Receiver {
         uint24 slippageBps
     ) internal returns (uint256 amountOutActual) {
         uint256 expectedOut = convertToken(USDT, usdtAmount);
-        emit DebugAddLiquidity("SWAP_CONVERT_TOKEN", expectedOut, usdtAmount);
         if (expectedOut == 0) {
-            emit DebugAddLiquidity("SWAP_FAILED_ZERO_PRICE", 0, 0);
             return 0;
         }
  
@@ -273,7 +260,6 @@ contract LIQUIDITY is Ownable, ReentrancyGuard, IERC721Receiver {
     ) internal returns (uint256 amountOutActual) {
         uint256 expectedOut = convertToken(AEOS, aeosAmount);
           if (expectedOut == 0) {
-            emit DebugAddLiquidity("SWAP_FAILED_ZERO_PRICE", 0, 0);
             return 0;
         }        
 
@@ -307,11 +293,35 @@ contract LIQUIDITY is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /* ===================== #3 INITIALIZE APPROVAL ===================== */
+    /**
+     * @dev Grant unlimited approval to position manager and swap router
+     * ⚠️ HIGH RISK: If POSITION_MANAGER or SWAP_ROUTER contracts are exploited,
+     * all tokens in this contract can be drained. Use with caution on mainnet.
+     * Consider implementing a revokeApproval() function for emergency access revocation.
+     */
     function initializeApproval() external onlyOwner nonReentrant {
-        IERC20(USDT).approve(address(POSITION_MANAGER), type(uint256).max);
-        IERC20(AEOS).approve(address(POSITION_MANAGER), type(uint256).max);
-        IERC20(USDT).approve(address(SWAP_ROUTER), type(uint256).max);
-        IERC20(AEOS).approve(address(SWAP_ROUTER), type(uint256).max);
+        IERC20(USDT).safeApprove(address(POSITION_MANAGER), 0);
+        IERC20(USDT).safeApprove(address(POSITION_MANAGER), type(uint256).max);
+
+        IERC20(AEOS).safeApprove(address(POSITION_MANAGER), 0);
+        IERC20(AEOS).safeApprove(address(POSITION_MANAGER), type(uint256).max);
+
+        IERC20(USDT).safeApprove(address(SWAP_ROUTER), 0);
+        IERC20(USDT).safeApprove(address(SWAP_ROUTER), type(uint256).max);
+
+        IERC20(AEOS).safeApprove(address(SWAP_ROUTER), 0);
+        IERC20(AEOS).safeApprove(address(SWAP_ROUTER), type(uint256).max);
+    }
+
+    /**
+     * @dev Emergency function to revoke all approvals if a contract is compromised
+     * Only callable by owner in emergency situations
+     */
+    function revokeApproval() external onlyOwner nonReentrant {
+        IERC20(USDT).safeApprove(address(POSITION_MANAGER), 0);
+        IERC20(AEOS).safeApprove(address(POSITION_MANAGER), 0);
+        IERC20(USDT).safeApprove(address(SWAP_ROUTER), 0);
+        IERC20(AEOS).safeApprove(address(SWAP_ROUTER), 0);
     }
 
     /* ===================== #4 INITIALIZE POOL ===================== */
@@ -467,17 +477,6 @@ contract LIQUIDITY is Ownable, ReentrancyGuard, IERC721Receiver {
         bytes calldata
     ) external pure override returns (bytes4) {
         return IERC721Receiver.onERC721Received.selector;
-    }
-
-    /* ===================== SQUARE ROOT HELPER ===================== */
-    function sqrt(uint160 x) internal pure returns (uint160 y) {
-        if (x == 0) return 0;
-        uint160 z = (x + 1) / 2;
-        y = x;
-        while (z < y) {
-            y = z;
-            z = (x / z + z) / 2;
-        }
     }
 
     /* ===================== SLIPPAGE HELPER ===================== */
