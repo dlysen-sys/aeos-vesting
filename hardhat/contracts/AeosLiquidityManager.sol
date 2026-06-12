@@ -292,13 +292,8 @@ contract LIQUIDITY is Ownable, ReentrancyGuard, IERC721Receiver {
         emit Deposited(USDT, msg.sender, amount);
     }
 
-    /* ===================== #3 INITIALIZE APPROVAL ===================== */
-    /**
-     * @dev Grant unlimited approval to position manager and swap router
-     * ⚠️ HIGH RISK: If POSITION_MANAGER or SWAP_ROUTER contracts are exploited,
-     * all tokens in this contract can be drained. Use with caution on mainnet.
-     * Consider implementing a revokeApproval() function for emergency access revocation.
-     */
+    /* ===================== #3a INITIALIZE APPROVAL ===================== */
+    /// @dev Grant unlimited approval to position manager and swap router (production only)
     function initializeApproval() external onlyOwner nonReentrant {
         IERC20(USDT).safeApprove(address(POSITION_MANAGER), 0);
         IERC20(USDT).safeApprove(address(POSITION_MANAGER), type(uint256).max);
@@ -313,8 +308,10 @@ contract LIQUIDITY is Ownable, ReentrancyGuard, IERC721Receiver {
         IERC20(AEOS).safeApprove(address(SWAP_ROUTER), type(uint256).max);
     }
 
+    /* ===================== #3b REVOKE APPROVAL (EMERGENCY) ===================== */
     /**
-     * @dev Emergency function to revoke all approvals if a contract is compromised
+     * @dev Emergency: Revoke all approvals if POSITION_MANAGER or SWAP_ROUTER is compromised
+     * ⚠️ HIGH RISK: Unlimited approvals can drain all tokens if external contracts exploited
      * Only callable by owner in emergency situations
      */
     function revokeApproval() external onlyOwner nonReentrant {
