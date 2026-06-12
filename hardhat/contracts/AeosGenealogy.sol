@@ -117,6 +117,7 @@ contract AeosGenealogy is Ownable {
         uint8 leg
     ) external antiSpam {
         require(!isUser[msg.sender], "ALREADY_REGISTERED");
+        require(binary[msg.sender].parent == address(0), "PREVIOUSLY_REGISTERED");
         require(isUser[sponsor], "SPONSOR_NOT_FOUND");
         require(isUser[binaryParent], "BINARY_PARENT_NOT_FOUND");
         require(leg == 0 || leg == 1, "INVALID_LEG");
@@ -353,16 +354,26 @@ contract AeosGenealogy is Ownable {
         address oldParent = aff.parent;
         if (oldParent != address(0)) {
             address[] storage oldChildren = affiliate[oldParent].children;
+            bool found = false;
             for (uint256 i = 0; i < oldChildren.length; i++) {
                 if (oldChildren[i] == user) {
                     oldChildren[i] = oldChildren[oldChildren.length - 1];
                     oldChildren.pop();
+                    found = true;
                     break;
                 }
             }
+            require(found, "USER_NOT_IN_PARENT_CHILDREN");
         }
 
         // Add to new parent's children
+        if (maxAffiliateChildren > 0) {
+            require(
+                affiliate[newParent].children.length < maxAffiliateChildren,
+                "SPONSOR_CHILDREN_LIMIT_REACHED"
+            );
+        }
+
         aff.parent = newParent;
         affiliate[newParent].children.push(user);
 
@@ -384,6 +395,8 @@ contract AeosGenealogy is Ownable {
         if (newRightAddr != address(0)) require(newRightAddr != user, "SELF_RIGHT_CHILD");
         if (newLeftAddr  != address(0) && newRightAddr != address(0))
             require(newLeftAddr != newRightAddr, "DUPLICATE_CHILD");
+        if (newParent    != address(0)) require(newParent != newLeftAddr,  "PARENT_CHILD_COLLISION");
+        if (newParent    != address(0)) require(newParent != newRightAddr, "PARENT_CHILD_COLLISION");
 
         BinaryData storage bin = binary[user];
 
@@ -393,6 +406,16 @@ contract AeosGenealogy is Ownable {
                 newParent == address(0) || isUser[newParent],
                 "PARENT_NOT_FOUND"
             );
+
+            // Walk binary ancestor chain to detect circular reference
+            if (newParent != address(0)) {
+                address cursor = newParent;
+                for (uint256 i = 0; i < MAX_ANCESTOR_DEPTH; i++) {
+                    if (cursor == address(0)) break;
+                    if (cursor == user) revert("CIRCULAR_BINARY_PARENT");
+                    cursor = binary[cursor].parent;
+                }
+            }
             // Remove from old parent's slot
             address oldParent = bin.parent;
             if (oldParent != address(0)) {
