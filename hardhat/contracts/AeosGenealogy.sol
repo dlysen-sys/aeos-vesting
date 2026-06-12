@@ -42,6 +42,7 @@ contract AeosGenealogy is Ownable {
     uint256 public totalUsers;
     uint256 public transactionCooldown = 9 seconds;
     uint256 public maxIteration = 100;
+    uint256 public maxAffiliateChildren = 0; // 0 = unlimited; > 0 = hard cap per sponsor
     uint256 public constant GAS_BUFFER = 300_000;
     uint256 private constant MAX_ANCESTOR_DEPTH = 500;
     mapping(address => uint256) public userMaxPropagationDepth;
@@ -133,6 +134,14 @@ contract AeosGenealogy is Ownable {
 
         isUser[msg.sender] = true;
         affiliate[msg.sender].parent = sponsor;
+
+        if (maxAffiliateChildren > 0) {
+            require(
+                affiliate[sponsor].children.length < maxAffiliateChildren,
+                "SPONSOR_CHILDREN_LIMIT_REACHED"
+            );
+        }
+
         affiliate[sponsor].children.push(msg.sender);
         binary[msg.sender].parent = binaryParent;
 
@@ -521,6 +530,16 @@ contract AeosGenealogy is Ownable {
     function setMaxIteration(uint256 depth) external onlyAdmin {
         require(depth >= 1 && depth <= 1000, "INVALID_DEPTH");
         maxIteration = depth;
+    }
+
+    /**
+     * @notice Set the maximum number of direct referral children a sponsor can have.
+     * @dev    0 = unlimited (default). Any value > 0 enforces a hard cap per sponsor.
+     *         Does not retroactively affect existing sponsors already at or above the limit.
+     * @param max The maximum child count (0 for unlimited)
+     */
+    function setMaxAffiliateChildren(uint256 max) external onlyAdmin {
+        maxAffiliateChildren = max;
     }
 
     /* ================================================================ */
