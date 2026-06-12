@@ -249,11 +249,33 @@ contract AeosGenealogy is Ownable {
 
     /**
      * @notice Get all direct children (referrals) of a user.
+     * @dev    Avoid on large trees — unbounded copy. Use paginated overload instead.
      */
     function getAffiliateChildren(
         address user
     ) external view returns (address[] memory) {
         return affiliate[user].children;
+    }
+
+    /**
+     * @notice Get a paginated slice of a user's direct referral children.
+     * @param user   The user whose children to query
+     * @param offset Start index (0-based)
+     * @param limit  Max number of results to return
+     */
+    function getAffiliateChildrenPaginated(
+        address user,
+        uint256 offset,
+        uint256 limit
+    ) external view returns (address[] memory result, uint256 total) {
+        address[] storage children = affiliate[user].children;
+        total = children.length;
+        if (offset >= total) return (new address[](0), total);
+        uint256 end = offset + limit > total ? total : offset + limit;
+        result = new address[](end - offset);
+        for (uint256 i = 0; i < result.length; i++) {
+            result[i] = children[offset + i];
+        }
     }
 
     /**
@@ -268,6 +290,8 @@ contract AeosGenealogy is Ownable {
 
     /**
      * @notice Get placement recommendation for a new user in binary tree.
+     * @dev    WARNING: Modifies state. May write userMaxPropagationDepth if gas
+     *         runs low during traversal. Cannot be called from view contexts.
      * @param _user     The user to find placement under
      * @param _options  0 = find open LEFT slot, 1 = find open RIGHT slot
      * @return _address The placement address
@@ -308,8 +332,17 @@ contract AeosGenealogy is Ownable {
         require(isUser[user], "USER_NOT_FOUND");
         require(newParent != user, "SELF_PARENT");
         require(isUser[newParent], "NEW_PARENT_NOT_FOUND");
+        require(newParent != affiliate[user].parent, "ALREADY_SAME_PARENT");
 
         AffiliateData storage aff = affiliate[user];
+
+        // Walk ancestor chain to detect circular reference
+        address cursor = newParent;
+        for (uint256 i = 0; i < maxIteration; i++) {
+            if (cursor == address(0)) break;
+            if (cursor == user) revert("CIRCULAR_PARENT");
+            cursor = affiliate[cursor].parent;
+        }
 
         // Remove from old parent's children
         address oldParent = aff.parent;
@@ -341,6 +374,11 @@ contract AeosGenealogy is Ownable {
         address newRightAddr
     ) external onlyAdmin {
         require(isUser[user], "USER_NOT_FOUND");
+        if (newParent    != address(0)) require(newParent    != user, "SELF_PARENT");
+        if (newLeftAddr  != address(0)) require(newLeftAddr  != user, "SELF_LEFT_CHILD");
+        if (newRightAddr != address(0)) require(newRightAddr != user, "SELF_RIGHT_CHILD");
+        if (newLeftAddr  != address(0) && newRightAddr != address(0))
+            require(newLeftAddr != newRightAddr, "DUPLICATE_CHILD");
 
         BinaryData storage bin = binary[user];
 
@@ -361,6 +399,16 @@ contract AeosGenealogy is Ownable {
                 }
             }
             bin.parent = newParent;
+
+            // Register user into new parent's available slot
+            if (newParent != address(0)) {
+                BinaryData storage newParentBin = binary[newParent];
+                if (newParentBin.leftAddress == address(0))
+                    newParentBin.leftAddress = user;
+                else if (newParentBin.rightAddress == address(0))
+                    newParentBin.rightAddress = user;
+                else revert("NEW_PARENT_FULL");
+            }
         }
 
         // Update left child if different
@@ -448,6 +496,7 @@ contract AeosGenealogy is Ownable {
         bool newIsUserValue
     ) external onlyAdmin {
         require(user != address(0), "ZERO_ADDRESS");
+        require(user != root, "CANNOT_DISABLE_ROOT");
 
         if (newIsUserValue != isUser[user]) {
             isUser[user] = newIsUserValue;
