@@ -67,6 +67,14 @@ contract AeosVestingReserves is Ownable {
 
     uint256 public vestingStartTime;
 
+    // ==================== DEPOSIT TRACKING ====================
+    // Track cumulative deposits per reserve to prevent overcounting
+    uint256 public treasuryDeposited;
+    uint256 public liquidityDeposited;
+    uint256 public communityIncentivesDeposited;
+    uint256 public ecosystemDeposited;
+    uint256 public communityGrowthDeposited;
+
     event TreasuryWalletUpdated(address indexed newWallet);
     event LiquidityWalletUpdated(address indexed newWallet);
     event CommunityIncentivesWalletUpdated(address indexed newWallet);
@@ -107,8 +115,9 @@ contract AeosVestingReserves is Ownable {
 
     function depositTreasuryTokens(uint256 amount) external onlyOwner {
         require(amount > 0, "Amount must be > 0");
-        require(amount <= TREASURY_ALLOCATION, "Exceeds treasury allocation");
+        require(treasuryDeposited + amount <= TREASURY_ALLOCATION, "Exceeds treasury allocation");
 
+        treasuryDeposited += amount;
         aeosToken.safeTransferFrom(msg.sender, treasuryWallet, amount);
         emit TreasuryDeposited(amount);
     }
@@ -121,8 +130,9 @@ contract AeosVestingReserves is Ownable {
 
     function depositLiquidityTokens(uint256 amount) external onlyOwner {
         require(amount > 0, "Amount must be > 0");
-        require(amount <= LIQUIDITY_ALLOCATION, "Exceeds liquidity allocation");
+        require(liquidityDeposited + amount <= LIQUIDITY_ALLOCATION, "Exceeds liquidity allocation");
 
+        liquidityDeposited += amount;
         aeosToken.safeTransferFrom(msg.sender, address(this), amount);
         emit LiquidityDeposited(amount);
     }
@@ -149,7 +159,8 @@ contract AeosVestingReserves is Ownable {
                 }
 
                 liquidityRelease.released += toRelease;
-                liquidityRelease.lastReleaseTime = block.timestamp;
+                // Advance lastReleaseTime by the periods released, preserving fractional remainder
+                liquidityRelease.lastReleaseTime += quartersSinceStart * 90 days;
                 aeosToken.safeTransfer(liquidityWallet, toRelease);
                 emit LiquidityReleased(toRelease);
             }
@@ -164,8 +175,9 @@ contract AeosVestingReserves is Ownable {
 
     function depositCommunityIncentivesTokens(uint256 amount) external onlyOwner {
         require(amount > 0, "Amount must be > 0");
-        require(amount <= COMMUNITY_INCENTIVES_ALLOCATION, "Exceeds community incentives allocation");
+        require(communityIncentivesDeposited + amount <= COMMUNITY_INCENTIVES_ALLOCATION, "Exceeds community incentives allocation");
 
+        communityIncentivesDeposited += amount;
         aeosToken.safeTransferFrom(msg.sender, communityIncentivesWallet, amount);
         emit CommunityIncentivesDeposited(amount);
     }
@@ -178,8 +190,9 @@ contract AeosVestingReserves is Ownable {
 
     function depositEcosystemTokens(uint256 amount) external onlyOwner {
         require(amount > 0, "Amount must be > 0");
-        require(amount <= ECOSYSTEM_ALLOCATION, "Exceeds ecosystem allocation");
+        require(ecosystemDeposited + amount <= ECOSYSTEM_ALLOCATION, "Exceeds ecosystem allocation");
 
+        ecosystemDeposited += amount;
         aeosToken.safeTransferFrom(msg.sender, address(this), amount);
         emit EcosystemDeposited(amount);
     }
@@ -206,7 +219,8 @@ contract AeosVestingReserves is Ownable {
                 }
 
                 ecosystemRelease.released += toRelease;
-                ecosystemRelease.lastReleaseTime = block.timestamp;
+                // Advance lastReleaseTime by the periods released, preserving fractional remainder
+                ecosystemRelease.lastReleaseTime += yearsSinceStart * 365 days;
                 aeosToken.safeTransfer(ecosystemWallet, toRelease);
                 emit EcosystemReleased(toRelease);
             }
@@ -221,8 +235,9 @@ contract AeosVestingReserves is Ownable {
 
     function depositCommunityGrowthTokens(uint256 amount) external onlyOwner {
         require(amount > 0, "Amount must be > 0");
-        require(amount <= COMMUNITY_GROWTH_ALLOCATION, "Exceeds community growth allocation");
+        require(communityGrowthDeposited + amount <= COMMUNITY_GROWTH_ALLOCATION, "Exceeds community growth allocation");
 
+        communityGrowthDeposited += amount;
         aeosToken.safeTransferFrom(msg.sender, address(this), amount);
         emit CommunityGrowthDeposited(amount);
     }
@@ -249,7 +264,8 @@ contract AeosVestingReserves is Ownable {
                 }
 
                 communityGrowthRelease.released += toRelease;
-                communityGrowthRelease.lastReleaseTime = block.timestamp;
+                // Advance lastReleaseTime by the periods released, preserving fractional remainder
+                communityGrowthRelease.lastReleaseTime += quartersSinceStart * 90 days;
                 aeosToken.safeTransfer(communityGrowthWallet, toRelease);
                 emit CommunityGrowthReleased(toRelease);
             }

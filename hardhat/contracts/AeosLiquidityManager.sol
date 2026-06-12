@@ -295,16 +295,9 @@ contract LIQUIDITY is Ownable, ReentrancyGuard, IERC721Receiver {
     /* ===================== #3a INITIALIZE APPROVAL ===================== */
     /// @dev Grant unlimited approval to position manager and swap router (production only)
     function initializeApproval() external onlyOwner nonReentrant {
-        IERC20(USDT).safeApprove(address(POSITION_MANAGER), 0);
         IERC20(USDT).safeApprove(address(POSITION_MANAGER), type(uint256).max);
-
-        IERC20(AEOS).safeApprove(address(POSITION_MANAGER), 0);
         IERC20(AEOS).safeApprove(address(POSITION_MANAGER), type(uint256).max);
-
-        IERC20(USDT).safeApprove(address(SWAP_ROUTER), 0);
         IERC20(USDT).safeApprove(address(SWAP_ROUTER), type(uint256).max);
-
-        IERC20(AEOS).safeApprove(address(SWAP_ROUTER), 0);
         IERC20(AEOS).safeApprove(address(SWAP_ROUTER), type(uint256).max);
     }
 
