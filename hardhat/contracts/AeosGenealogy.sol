@@ -43,6 +43,7 @@ contract AeosGenealogy is Ownable {
     uint256 public transactionCooldown = 9 seconds;
     uint256 public maxIteration = 100;
     uint256 public constant GAS_BUFFER = 300_000;
+    uint256 private constant MAX_ANCESTOR_DEPTH = 500;
     mapping(address => uint256) public userMaxPropagationDepth;
 
     /* ------------------------------------------------------------------ */
@@ -79,11 +80,6 @@ contract AeosGenealogy is Ownable {
         );
         lastCallBlock[msg.sender] = block.number;
         lastCallTime[msg.sender] = block.timestamp;
-        _;
-    }
-
-    modifier isRegistered() {
-        require(isUser[msg.sender], "USER_NOT_FOUND");
         _;
     }
 
@@ -304,7 +300,7 @@ contract AeosGenealogy is Ownable {
         require(isUser[_user], "USER_NOT_FOUND");
         if (_options == 0) return _binaryOpenNode(_user, false);
         if (_options == 1) return _binaryOpenNode(_user, true);
-        return (_user, false);
+        revert("INVALID_OPTIONS");
     }
 
     /**
@@ -338,7 +334,7 @@ contract AeosGenealogy is Ownable {
 
         // Walk ancestor chain to detect circular reference
         address cursor = newParent;
-        for (uint256 i = 0; i < maxIteration; i++) {
+        for (uint256 i = 0; i < MAX_ANCESTOR_DEPTH; i++) {
             if (cursor == address(0)) break;
             if (cursor == user) revert("CIRCULAR_PARENT");
             cursor = affiliate[cursor].parent;
@@ -419,8 +415,9 @@ contract AeosGenealogy is Ownable {
             );
 
             // Orphan old left child's descendants if it exists
+            // Skip if old left is being moved to the right slot in this same call
             address oldLeftAddr = bin.leftAddress;
-            if (oldLeftAddr != address(0) && oldLeftAddr != newLeftAddr) {
+            if (oldLeftAddr != address(0) && oldLeftAddr != newLeftAddr && oldLeftAddr != newRightAddr) {
                 BinaryData storage oldLeftBin = binary[oldLeftAddr];
                 if (oldLeftBin.leftAddress != address(0)) {
                     binary[oldLeftBin.leftAddress].parent = address(0);
@@ -456,8 +453,9 @@ contract AeosGenealogy is Ownable {
             );
 
             // Orphan old right child's descendants if it exists
+            // Skip if old right was already moved to the left slot earlier in this call
             address oldRightAddr = bin.rightAddress;
-            if (oldRightAddr != address(0) && oldRightAddr != newRightAddr) {
+            if (oldRightAddr != address(0) && oldRightAddr != newRightAddr && oldRightAddr != bin.leftAddress) {
                 BinaryData storage oldRightBin = binary[oldRightAddr];
                 if (oldRightBin.leftAddress != address(0)) {
                     binary[oldRightBin.leftAddress].parent = address(0);
