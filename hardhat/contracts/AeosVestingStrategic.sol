@@ -892,12 +892,12 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Withdraw USDT tokens from contract (owner only)
+     * @dev Withdraw USDT tokens to arbitrary address (owner only)
+     * Different from withdrawUsdt() which sends to treasuryWallet
      */
-    function withdrawUSDT(address to, uint256 amount) external onlyOwner {
+    function withdrawUSDTTo(address to, uint256 amount) external onlyOwner nonReentrant {
         require(to != address(0), "Invalid recipient address");
         require(amount > 0, "Amount must be > 0");
-        bool success = IERC20(address(usdtToken)).transfer(to, amount);
-        require(success, "USDT transfer failed");
+        usdtToken.safeTransfer(to, amount);
     }
 }

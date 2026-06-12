@@ -115,10 +115,11 @@ contract AeosVestingTeam is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Release unlocked tokens to team member
+     * @dev Release unlocked tokens to team member (member or owner only)
      */
     function releaseTeamTokens(address member) external nonReentrant returns (uint256) {
         require(member != address(0), "Invalid member address");
+        require(msg.sender == member || msg.sender == owner(), "Only member or owner can release");
 
         uint256 unlockable = getUnlockableAmount(member);
         require(unlockable > 0, "No unlocked tokens");
