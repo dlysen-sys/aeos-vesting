@@ -123,6 +123,12 @@ contract AeosGenealogy is Ownable {
         require(leg == 0 || leg == 1, "INVALID_LEG");
         require(sponsor != msg.sender, "SELF_SPONSOR");
         require(binaryParent != msg.sender, "SELF_BINARY_PARENT");
+        if (maxAffiliateChildren > 0) {
+            require(
+                affiliate[sponsor].children.length < maxAffiliateChildren,
+                "SPONSOR_CHILDREN_LIMIT_REACHED"
+            );
+        }
 
         BinaryData storage bp = binary[binaryParent];
         if (leg == 0) {
@@ -135,14 +141,6 @@ contract AeosGenealogy is Ownable {
 
         isUser[msg.sender] = true;
         affiliate[msg.sender].parent = sponsor;
-
-        if (maxAffiliateChildren > 0) {
-            require(
-                affiliate[sponsor].children.length < maxAffiliateChildren,
-                "SPONSOR_CHILDREN_LIMIT_REACHED"
-            );
-        }
-
         affiliate[sponsor].children.push(msg.sender);
         binary[msg.sender].parent = binaryParent;
 
@@ -424,6 +422,8 @@ contract AeosGenealogy is Ownable {
                     oldBin.leftAddress = address(0);
                 } else if (oldBin.rightAddress == user) {
                     oldBin.rightAddress = address(0);
+                } else {
+                    revert("USER_NOT_IN_BINARY_PARENT_SLOT");
                 }
             }
             bin.parent = newParent;
@@ -472,6 +472,13 @@ contract AeosGenealogy is Ownable {
                         newLeftParentBin.rightAddress = address(0);
                     }
                 }
+                // Ensure newLeftAddr is not an ancestor of user — would create a cycle
+                address cursorL = binary[user].parent;
+                for (uint256 i = 0; i < MAX_ANCESTOR_DEPTH; i++) {
+                    if (cursorL == address(0)) break;
+                    if (cursorL == newLeftAddr) revert("CIRCULAR_BINARY_CHILD");
+                    cursorL = binary[cursorL].parent;
+                }
                 // Update new left child's parent to current user
                 binary[newLeftAddr].parent = user;
             }
@@ -509,6 +516,13 @@ contract AeosGenealogy is Ownable {
                     } else if (newRightParentBin.rightAddress == newRightAddr) {
                         newRightParentBin.rightAddress = address(0);
                     }
+                }
+                // Ensure newRightAddr is not an ancestor of user — would create a cycle
+                address cursorR = binary[user].parent;
+                for (uint256 i = 0; i < MAX_ANCESTOR_DEPTH; i++) {
+                    if (cursorR == address(0)) break;
+                    if (cursorR == newRightAddr) revert("CIRCULAR_BINARY_CHILD");
+                    cursorR = binary[cursorR].parent;
                 }
                 // Update new right child's parent to current user
                 binary[newRightAddr].parent = user;
@@ -586,6 +600,7 @@ contract AeosGenealogy is Ownable {
      */
     function removeAdmin(address adminAddress) external onlyOwner {
         require(adminAddress != address(0), "ZERO_ADDRESS");
+        require(adminAddress != root, "CANNOT_REMOVE_ROOT_ADMIN");
         require(isAdmin[adminAddress], "NOT_ADMIN");
         isAdmin[adminAddress] = false;
         emit AdminRemoved(adminAddress);
