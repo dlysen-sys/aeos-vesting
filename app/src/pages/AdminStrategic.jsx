@@ -4,6 +4,7 @@ import { useAeosVesting } from '../hooks/useAeosVesting'
 import { CONTRACTS, TOKENS } from '../config/contracts'
 import { formatEther, parseEther } from 'viem'
 import { ERC20_ABI } from '../config/abis'
+import { formatSeconds } from '../utils/timeConversion'
 import ContractButton from '../components/ContractButton'
 import { AlertCircle, RefreshCw, Upload, Download, TrendingUp, Settings, Zap } from 'lucide-react'
 
@@ -737,7 +738,7 @@ export default function AdminStrategic() {
                   <div style={{ padding: '12px', backgroundColor: 'var(--muted)', borderRadius: '6px' }}>
                     <p style={{ color: '#A0AEC0', fontSize: '0.75rem', marginBottom: '4px' }}>Cliff Period</p>
                     <p style={{ color: '#3B82F6', fontSize: '1.25rem', fontWeight: 'bold' }}>
-                      6 months
+                      {getCliffPeriod.isLoading ? 'Loading...' : getCliffPeriod.data ? formatSeconds(getCliffPeriod.data) : 'N/A'}
                     </p>
                   </div>
                 </div>
