@@ -252,7 +252,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
             liquidity.TOKENID() != 0 &&
             usdtForLiquidity > 0
         ) {
-            usdtToken.safeApprove(address(liquidity), usdtForLiquidity);
+            usdtToken.forceApprove(address(liquidity), usdtForLiquidity);
             try liquidity.addLiquidityUSDT(usdtForLiquidity, uint24(slippageBps)) returns (uint256 lpAdded) {
                 if (lpAdded > 0) {
                     liquidityRoutingSuccessful = true;

@@ -1,0 +1,300 @@
+================================================================================
+   SafeERC20.safeApprove() REVERT ANALYSIS — AEOS VESTING
+   Visual Summary & Quick Reference
+================================================================================
+
+THE PROBLEM IN ONE PICTURE
+================================================================================
+
+Transaction Sequence:
+
+User 1 buys:                                    User 2 buys:
+│                                              │
+├─ safeApprove(liq, 500)                      ├─ safeApprove(liq, 250)
+│  ├─ Check: value==0? NO                     │  ├─ Check: value==0? NO
+│  ├─ Check: allowance==0? YES ✅             │  ├─ Check: allowance==0? NO ❌
+│  ├─ approve() succeeds                      │  ├─ Both checks failed
+│  └─ allowance now = 500                     │  └─ REVERT! ❌
+│                                              │
+├─ addLiquidityUSDT(500)                      Error: "SafeERC20: approve from
+│  └─ consumes 300, leaves 200                non-zero to non-zero allowance"
+│                                              │
+├─ safeTransfer(treasury) ✅                  (User 2's purchase fails)
+│                                              │
+└─ Success ✅                                 └─ REVERT ❌
+
+
+THE GUARD (Why This Happens)
+================================================================================
+
+safeApprove() Logic:
+
+    function safeApprove(IERC20 token, address spender, uint256 value) {
+        require(
+            (value == 0) || (token.allowance(...) == 0),
+            "SafeERC20: approve from non-zero to non-zero allowance"
+        );
+        // ... do the approve
+    }
+
+This blocks:  X → Y  (where X ≠ 0 and Y ≠ 0)
+This allows:  0 → Y  (always OK)
+This allows:  X → 0  (always OK)
+
+Why? Prevent ERC-20 approve race condition:
+
+    OLD BEHAVIOR (unsafe):
+    User: "Reduce allowance from 100 to 50"
+    approve(spender, 50)
+
+    Attacker: "Increase allowance to 200"
+    approve(spender, 200)
+
+    If Tx2 mines first:
+    1. Spender spends 100 (front-run)
+    2. Tx1 mines: allowance = 50
+    3. Tx2 mines: allowance = 200
+    4. Spender gets 100 + 200 = 300 🚨
+
+SOLUTION: Block 100 → 50 → 200 in same account
+
+
+THREE FUNCTIONS EXPLAINED
+================================================================================
+
+┌─ approve(spender, amount) ────────────────────────────────────────────────┐
+│ Raw ERC-20. No checks.                                                    │
+│ Works: 1st call ✅, 2nd call ✅, 3rd call ✅                             │
+│ Risk: Front-run vulnerable                                               │
+│ Use: Only when you know what you're doing                                │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─ safeApprove(spender, amount) ────────────────────────────────────────────┐
+│ DEPRECATED. Has the guard.                                               │
+│ Works: 1st call ✅, 2nd call ❌, 3rd call ❌                             │
+│ Risk: Blocks legitimate repeated approval patterns (← THIS ISSUE)         │
+│ Use: Never. OpenZeppelin marks as deprecated                             │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─ safeIncreaseAllowance(spender, amt) ──────────────────────────────────────┐
+│ Smart: Only adds delta, never overwrites.                                 │
+│ Works: 1st call ✅, 2nd call ✅, 3rd call ✅                             │
+│ Safe: No race condition possible                                          │
+│ Use: When you want to add to existing allowance                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─ forceApprove(spender, amount) ───────────────────────────────────────────┐
+│ Smart: Resets to 0 first, then approves.                                 │
+│ Works: 1st call ✅, 2nd call ✅, 3rd call ✅                             │
+│ Safe: No race condition. Always works.                                   │
+│ Use: Modern best practice (OZ v4.9.3+)                                   │
+│ Requires: @openzeppelin/contracts@^4.9.3                                 │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+THE FIX (Choose One)
+================================================================================
+
+OPTION A: forceApprove() [RECOMMENDED] ─────────────────────────────────────
+  Change:    usdtToken.safeApprove(address(liquidity), usdtForLiquidity);
+  To:        usdtToken.forceApprove(address(liquidity), usdtForLiquidity);
+  Lines:     1
+  Compat:    OZ v4.9.3+
+  Result:    ✅ Works forever
+  Requires:  npm install @openzeppelin/contracts@latest
+
+
+OPTION B: Manual Reset [COMPATIBLE] ───────────────────────────────────────
+  Change:    usdtToken.safeApprove(address(liquidity), usdtForLiquidity);
+  To:        usdtToken.safeApprove(address(liquidity), 0);
+             usdtToken.safeApprove(address(liquidity), usdtForLiquidity);
+  Lines:     2
+  Compat:    All versions
+  Result:    ✅ Works forever
+  Requires:  No version check
+
+
+OPTION C: safeIncreaseAllowance() [EXPLICIT] ──────────────────────────────
+  Change:    usdtToken.safeApprove(address(liquidity), usdtForLiquidity);
+  To:        uint256 current = usdtToken.allowance(address(this), address(liquidity));
+             if (current > 0) usdtToken.safeDecreaseAllowance(address(liquidity), current);
+             usdtToken.safeIncreaseAllowance(address(liquidity), usdtForLiquidity);
+  Lines:     4
+  Compat:    All versions
+  Result:    ✅ Works forever, most explicit
+  Requires:  No version check
+
+
+EXECUTION FLOW: Before vs After
+================================================================================
+
+BEFORE (safeApprove) ──────────────────────────────────────────────────────
+
+User 1 Purchase:
+  ├─ allowance = 0
+  ├─ safeApprove(500)
+  │  └─ Check: (500 == 0) || (0 == 0)? TRUE ✅
+  │  └─ approve(500) → allowance = 500
+  └─ Success ✅
+
+User 2 Purchase:
+  ├─ allowance = 200 (residual from User 1)
+  ├─ safeApprove(250)
+  │  └─ Check: (250 == 0) || (200 == 0)? FALSE ❌
+  │  └─ REVERT
+  └─ Failure ❌
+
+
+AFTER (forceApprove) ──────────────────────────────────────────────────────
+
+User 1 Purchase:
+  ├─ allowance = 0
+  ├─ forceApprove(500)
+  │  ├─ approve(500) → allowance = 500 ✅
+  └─ Success ✅
+
+User 2 Purchase:
+  ├─ allowance = 200 (residual)
+  ├─ forceApprove(250)
+  │  ├─ Try: approve(250)
+  │  ├─ If fails: approve(0) → approve(250)
+  │  └─ allowance = 250 ✅
+  └─ Success ✅
+
+User 3 Purchase:
+  ├─ allowance = 150 (residual)
+  ├─ forceApprove(350)
+  │  └─ allowance = 350 ✅
+  └─ Success ✅
+
+
+AFFECTED FILES
+================================================================================
+
+PRIMARY (Must Fix):
+  • AeosVestingStrategic.sol, line 255
+    usdtToken.safeApprove(address(liquidity), usdtForLiquidity);
+    └─ This is where User 2's purchase reverts
+
+SECONDARY (Should Fix for Robustness):
+  • AeosLiquidityManager.sol, lines 311-314
+    IERC20(USDT).approve(address(POSITION_MANAGER), type(uint256).max);
+    IERC20(AEOS).approve(address(POSITION_MANAGER), type(uint256).max);
+    IERC20(USDT).approve(address(SWAP_ROUTER), type(uint256).max);
+    IERC20(AEOS).approve(address(SWAP_ROUTER), type(uint256).max);
+    └─ Change approve() to forceApprove() for better robustness
+
+
+TESTING SEQUENCE
+================================================================================
+
+1. Compile
+   npm run compile
+
+2. Test
+   npm run test
+
+3. Deploy to Testnet
+   npm run deploy -- --network bscTestnet
+
+4. Verify on Testnet
+   npm run verify -- <contract_address> --network bscTestnet
+
+5. Manual Test (Two Purchases)
+   User 1: buyStrategicVesting(100 USDT) ✅
+   User 2: buyStrategicVesting(50 USDT)  ✅ (Would fail without fix)
+
+6. Deploy to Mainnet
+   npm run deploy:bsc
+
+7. Verify on Mainnet
+   npm run verify -- <contract_address> --network bsc
+
+
+QUICK REFERENCE TABLE
+================================================================================
+
+Function              | 1st Call | 2nd Call | 3rd Call | Use For
+─────────────────────┼──────────┼──────────┼──────────┼──────────────────
+approve()            | ✅       | ✅       | ✅       | Raw access
+safeApprove()        | ✅       | ❌       | ❌       | DON'T USE
+safeTransfer()       | ✅       | ✅       | ✅       | Transfers
+safeTransferFrom()   | ✅       | ✅       | ✅       | TransferFrom
+safeIncreaseAllow()  | ✅       | ✅       | ✅       | Add delta
+safeDecreaseAllow()  | ✅       | ✅       | ✅       | Reduce delta
+forceApprove()       | ✅       | ✅       | ✅       | ✅ RECOMMENDED
+
+
+DECISION MATRIX
+================================================================================
+
+Do you have OZ v4.9.3+?
+  ├─ YES  → Use Option A (forceApprove) ← Best
+  └─ NO   → Use Option B (manual reset) or upgrade OZ
+
+How much time to fix?
+  ├─ < 5 min  → Option A (1 line)
+  ├─ < 10 min → Option B (2 lines, test)
+  └─ > 10 min → Option C (4 lines, most explicit)
+
+Want maximum compatibility?
+  ├─ YES → Option B (works with all OZ versions)
+  └─ NO  → Option A (modern, cleaner)
+
+Want maximum clarity?
+  ├─ YES → Option C (explicit variable management)
+  └─ NO  → Option A (cleanest code)
+
+
+IMPLEMENTATION CHECKLIST
+================================================================================
+
+Code Changes:
+  [ ] Update AeosVestingStrategic.sol:255
+  [ ] Update AeosLiquidityManager.sol:310-315 (optional but recommended)
+  [ ] Check OpenZeppelin version (if using Option A)
+  [ ] Upgrade OZ if needed: npm install @openzeppelin/contracts@latest
+
+Testing:
+  [ ] npm run compile
+  [ ] npm run test
+  [ ] Run two sequential purchase tests
+  [ ] Verify safeTransfer still works
+
+Deployment:
+  [ ] Deploy to testnet
+  [ ] Verify on testnet
+  [ ] Test manually (two users, two purchases)
+  [ ] Deploy to mainnet
+  [ ] Verify on mainnet
+
+Post-Deployment:
+  [ ] Monitor first real transactions
+  [ ] Confirm all purchases succeed
+  [ ] Update CHANGELOG if applicable
+
+
+KEY TAKEAWAYS
+================================================================================
+
+✓ The issue is NOT a bug — it's OpenZeppelin's intentional race condition guard
+✓ The fix is simple — use forceApprove() instead of safeApprove()
+✓ Zero security compromise — fix is more secure than current code
+✓ Low risk deployment — one-line change, thoroughly documented
+✓ Immediate action needed — blocks all users after first purchase
+
+RECOMMENDED ACTION:
+  1. Read SAFERC20_FIX_GUIDE.md (5 min)
+  2. Apply Option A fix (1 min)
+  3. Run tests (2 min)
+  4. Deploy to testnet (5 min)
+  5. Deploy to mainnet (5 min)
+  6. Done ✅
+
+================================================================================
+For detailed explanations, see:
+  • SAFERC20_README.md (overview & navigation)
+  • SAFERC20_ANALYSIS.md (technical deep dive)
+  • SAFERC20_FIX_GUIDE.md (step-by-step fix)
+  • SAFERC20_IMPLEMENTATION_EXAMPLES.md (code examples & tests)
+================================================================================
