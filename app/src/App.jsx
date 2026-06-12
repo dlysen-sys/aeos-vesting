@@ -10,6 +10,7 @@ import Team from './pages/Team'
 import AdminStrategic from './pages/AdminStrategic'
 import AdminAdvisors from './pages/AdminAdvisors'
 import AdminTeam from './pages/AdminTeam'
+import AdminGenealogy from './pages/AdminGenealogy'
 import Landing from './pages/Landing'
 import './styles/globals.css'
 
@@ -22,11 +23,11 @@ export default function App() {
     <Router>
       <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
         <NetworkChainAlert />
-        {isConnected && <Navbar isConnected={isConnected} address={address} disconnect={disconnect} />}
+        <Navbar isConnected={isConnected} address={address} disconnect={disconnect} connect={() => connect({ connector: injected() })} />
 
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<Landing isConnected={isConnected} connect={connect} />} />
+          <Route path="/" element={<Landing isConnected={isConnected} connect={() => connect({ connector: injected() })} />} />
 
           {/* Protected Routes - User Dashboards */}
           <Route path="/strategic" element={isConnected ? <Strategic /> : <Navigate to="/" />} />
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="/admin/strategic" element={isConnected ? <AdminStrategic /> : <Navigate to="/" />} />
           <Route path="/admin/advisor" element={isConnected ? <AdminAdvisors /> : <Navigate to="/" />} />
           <Route path="/admin/team" element={isConnected ? <AdminTeam /> : <Navigate to="/" />} />
+          <Route path="/admin/genealogy" element={isConnected ? <AdminGenealogy /> : <Navigate to="/" />} />
 
           {/* Catch All */}
           <Route path="*" element={<Navigate to="/" />} />

@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { CONTRACTS } from '../config/contracts'
 import MobileNav from './MobileNav'
 import ThemeToggle from './ThemeToggle'
-import { LogOut, Upload, Download, Settings, RefreshCw } from 'lucide-react'
+import { LogOut, Upload, Download, Settings, RefreshCw, Users, Wallet } from 'lucide-react'
 
 const STRATEGIC_OWNER_ABI = [
   {
@@ -37,9 +37,10 @@ const ADMIN_MODULES = [
   { path: '/admin/strategic', label: 'Strategic', color: '#10B981' },
   { path: '/admin/advisor', label: 'Advisors', color: '#3B82F6' },
   { path: '/admin/team', label: 'Team', color: '#F59E0B' },
+  { path: '/admin/genealogy', label: 'Genealogy', color: '#EC4899' },
 ]
 
-export default function Navbar({ isConnected, address, disconnect }) {
+export default function Navbar({ isConnected, address, disconnect, connect }) {
   const location = useLocation()
   const chainId = useChainId()
   const publicClient = usePublicClient()
@@ -131,7 +132,7 @@ export default function Navbar({ isConnected, address, disconnect }) {
           {/* Theme Toggle */}
           <ThemeToggle />
 
-          {isConnected && (
+          {isConnected ? (
             <div className="hidden sm:flex items-center gap-4">
               <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
                 {getNetworkIcon()}
@@ -157,6 +158,15 @@ export default function Navbar({ isConnected, address, disconnect }) {
                 <span className="hidden sm:inline">Disconnect</span>
               </button>
             </div>
+          ) : (
+            <button
+              onClick={connect}
+              className="hidden sm:flex items-center gap-2 btn-primary"
+              style={{ padding: '8px 16px', fontSize: '14px' }}
+            >
+              <Wallet size={15} />
+              Connect Wallet
+            </button>
           )}
           {/* Mobile Navigation */}
           {isConnected && <MobileNav isConnected={isConnected} address={address} disconnect={disconnect} />}
@@ -191,7 +201,7 @@ export default function Navbar({ isConnected, address, disconnect }) {
 
           {/* Admin Functions Info */}
           <div className="max-w-6xl mx-auto px-4 py-2 text-xs" style={{ color: '#A0AEC0' }}>
-            <span>Admin Functions: Deposit • Withdraw • Funding Status • Settings</span>
+            <span>Admin Functions: Deposit • Withdraw • Funding Status • Settings • Genealogy</span>
           </div>
 
           {/* Wrap toggle drawer — mobile only */}

@@ -82,35 +82,32 @@ function Donut() {
   )
 }
 
-/* ─── Connected view ─────────────────────────────────────────── */
-function ConnectedView() {
+/* ─── Dashboard shortcuts shown when wallet is connected ─────── */
+function DashboardBanner() {
   return (
-    <div className="max-w-6xl mx-auto px-4 py-16 space-y-14">
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl sm:text-5xl font-bold" style={{ color: 'var(--primary)' }}>AEOS Vesting Dashboard</h1>
-        <p className="text-lg" style={{ color: 'var(--muted-foreground)' }}>Manage your token allocations across multiple vesting modules</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[
-          { href: '/strategic', icon: TrendingUp, color: '#10B981', title: 'Strategic Investors', desc: '10% · 6 mo cliff · 5% quarterly' },
-          { href: '/advisor',   icon: Users,      color: '#3B82F6', title: 'Advisors',            desc: '5% · 12 mo cliff · 2.5% monthly' },
-          { href: '/team',      icon: Lock,       color: '#F59E0B', title: 'Team & Founders',     desc: '10% · 18 mo cliff · 2% monthly' },
-        ].map(m => (
-          <a key={m.href} href={m.href} className="card-aeos p-6 hover:shadow-lg transition-all cursor-pointer group">
-            <div className="flex items-center gap-3 mb-3">
-              <m.icon size={22} style={{ color: m.color }} />
-              <h2 className="text-lg font-bold">{m.title}</h2>
-            </div>
-            <p className="text-sm mb-4" style={{ color: 'var(--muted-foreground)' }}>{m.desc}</p>
-            <div className="flex items-center gap-1 text-sm font-medium" style={{ color: m.color }}>
-              View Dashboard <ArrowRight size={14} />
-            </div>
-          </a>
-        ))}
-      </div>
-      <div className="border-t pt-10" style={{ borderColor: 'var(--border)' }}>
-        <p className="text-sm font-medium mb-4" style={{ color: 'var(--muted-foreground)' }}>Admin Panel</p>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+    <div className="border-b" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}>
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-4">
+        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-foreground)' }}>
+          Your Dashboard
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { href: '/strategic', icon: TrendingUp, color: '#10B981', title: 'Strategic Investors', desc: '10% · 6 mo cliff · 5% quarterly' },
+            { href: '/advisor',   icon: Users,      color: '#3B82F6', title: 'Advisors',            desc: '5% · 12 mo cliff · 2.5% monthly' },
+            { href: '/team',      icon: Lock,       color: '#F59E0B', title: 'Team & Founders',     desc: '10% · 18 mo cliff · 2% monthly' },
+          ].map(m => (
+            <a key={m.href} href={m.href} className="card-aeos px-5 py-4 flex items-center gap-4 hover:shadow transition-all cursor-pointer group">
+              <m.icon size={20} style={{ color: m.color }} />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm">{m.title}</p>
+                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{m.desc}</p>
+              </div>
+              <ArrowRight size={14} style={{ color: m.color }} className="flex-shrink-0" />
+            </a>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <p className="text-xs w-full" style={{ color: 'var(--muted-foreground)' }}>Admin</p>
           {[
             { href: '/admin',           icon: Zap,        color: 'var(--primary)', label: 'Overview'  },
             { href: '/admin/strategic', icon: TrendingUp, color: '#10B981',        label: 'Strategic' },
@@ -118,9 +115,10 @@ function ConnectedView() {
             { href: '/admin/team',      icon: Lock,       color: '#F59E0B',        label: 'Team'      },
             { href: '/admin/genealogy', icon: Globe,      color: '#EC4899',        label: 'Genealogy' },
           ].map(a => (
-            <a key={a.href} href={a.href} className="card-aeos p-3 flex items-center gap-2 hover:shadow transition-all cursor-pointer">
-              <a.icon size={16} style={{ color: a.color }} />
-              <span className="text-sm font-medium">{a.label}</span>
+            <a key={a.href} href={a.href}
+               className="card-aeos px-3 py-2 flex items-center gap-1.5 hover:shadow transition-all cursor-pointer text-xs font-medium">
+              <a.icon size={13} style={{ color: a.color }} />
+              {a.label}
             </a>
           ))}
         </div>
@@ -131,10 +129,12 @@ function ConnectedView() {
 
 /* ─── Main Landing ────────────────────────────────────────────── */
 export default function Landing({ isConnected, connect }) {
-  if (isConnected) return <ConnectedView />
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
+
+      {/* Dashboard shortcuts — only when wallet connected */}
+      {isConnected && <DashboardBanner />}
 
       {/* ── HERO ─────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
@@ -163,10 +163,16 @@ export default function Landing({ isConnected, connect }) {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-            <button onClick={() => connect({ connector: undefined })}
-              className="btn-primary px-8 py-3 text-base flex items-center gap-2">
-              <Wallet size={18} /> Connect Wallet <ChevronRight size={16} />
-            </button>
+            {isConnected ? (
+              <a href="/admin" className="btn-primary px-8 py-3 text-base flex items-center gap-2">
+                <Zap size={18} /> Go to Dashboard <ChevronRight size={16} />
+              </a>
+            ) : (
+              <button onClick={() => connect({ connector: undefined })}
+                className="btn-primary px-8 py-3 text-base flex items-center gap-2">
+                <Wallet size={18} /> Connect Wallet <ChevronRight size={16} />
+              </button>
+            )}
             <a href="#tokenomics" className="px-8 py-3 rounded-lg text-base font-medium border transition-colors"
                style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
               View Tokenomics
@@ -456,10 +462,16 @@ export default function Landing({ isConnected, connect }) {
             Minimum purchase: <strong>10 USDT</strong>. Multiple vesting positions supported.
             Each position tracked independently on-chain.
           </p>
-          <button onClick={() => connect({ connector: undefined })}
-            className="btn-primary px-10 py-3 text-base inline-flex items-center gap-2">
-            <Wallet size={18} /> Connect Wallet <ChevronRight size={16} />
-          </button>
+          {isConnected ? (
+            <a href="/strategic" className="btn-primary px-10 py-3 text-base inline-flex items-center gap-2">
+              <TrendingUp size={18} /> View Vesting Positions <ChevronRight size={16} />
+            </a>
+          ) : (
+            <button onClick={() => connect({ connector: undefined })}
+              className="btn-primary px-10 py-3 text-base inline-flex items-center gap-2">
+              <Wallet size={18} /> Connect Wallet <ChevronRight size={16} />
+            </button>
+          )}
           <div className="pt-6 border-t flex flex-col sm:flex-row items-center justify-center gap-4 text-xs"
                style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>
             <span>CA: <span className="font-mono">0x89417b107aD0eF0Ce0dA82c5d6fD6c81F6e0d25A</span></span>
