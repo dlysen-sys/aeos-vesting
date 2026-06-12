@@ -1,8 +1,8 @@
 # AEOS Vesting System — Project Milestones
 
-**Project Status:** 🟡 In Development (Phase 3/4) + Security Fixes  
+**Project Status:** 🟡 In Development (Phase 3/4) + Smart Contract Integration  
 **Last Updated:** 2026-06-12  
-**Next Session Focus:** Continue Tier 2 security fixes (safeApprove, LiquidityManager, Reserves)
+**Next Session Focus:** Wire UI to contracts following 5-step SOP (Step 3: addresses wired)
 
 ---
 

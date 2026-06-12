@@ -12,12 +12,12 @@ export const ACTIVE_CHAIN_ID = 31337; // Change this to switch networks
  */
 const NETWORK_ADDRESSES = {
   31337: {
-    // Hardhat Local (from deployments/deployment-latest.json - Updated: 2026-06-11)
+    // Hardhat Local (from deployments/deployment-latest.json - Updated: 2026-06-12)
     // ⚠️ TESTING ONLY: With deposit/withdraw functions + fast unlocking + tiered pricing + enhanced natspec
-    team: '0x6DcBc91229d812910b54dF91b5c2b592572CD6B0',
-    strategic: '0x245e77E56b1514D77910c9303e4b44dDb44B788c',
-    advisors: '0xE2b5bDE7e80f89975f7229d78aD9259b2723d11F',
-    reserves: '0xC6c5Ab5039373b0CBa7d0116d9ba7fb9831C3f42',
+    team: '0x88D1aF96098a928eE278f162c1a84f339652f95b',
+    strategic: '0x7Ce73F8f636C6bD3357A0A8a59e0ab6462C955B0',
+    advisors: '0x87c470437282174b3f8368c7CF1Ac03bcAe57954',
+    reserves: '0x746a48E39dC57Ff14B872B8979E20efE5E5100B1',
   },
   97: {
     // BSC Testnet (update after deployment)
@@ -40,8 +40,8 @@ const NETWORK_ADDRESSES = {
  */
 const NETWORK_TOKENS = {
   31337: {
-    aeos: '0x9d136eEa063eDE5418A6BC7bEafF009bBb6CFa70',  // AEOS COIN (deployed on Hardhat local - Latest)
-    usdt: '0x6212cb549De37c25071cF506aB7E115D140D9e42',  // USDT Tether (deployed on Hardhat local - Latest)
+    aeos: '0x04f1A5b9BD82a5020C49975ceAd160E98d8B77Af',  // AEOS COIN (deployed on Hardhat local - Latest)
+    usdt: '0x05bB67cB592C1753425192bF8f34b95ca8649f09',  // USDT Tether (deployed on Hardhat local - Latest)
   },
   97: {
     aeos: '0x89417b107ad0ef0ce0da82c5d6fd6c81f6e0d25a',
