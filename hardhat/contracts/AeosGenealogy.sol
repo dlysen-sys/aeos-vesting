@@ -32,6 +32,7 @@ contract AeosGenealogy is Ownable {
     /* ------------------------------------------------------------------ */
 
     mapping(address => bool) public isUser;
+    mapping(address => bool) public isAdmin;
     mapping(address => AffiliateData) public affiliate;
     mapping(address => BinaryData) public binary;
     mapping(address => uint256) public lastCallBlock;
@@ -40,7 +41,9 @@ contract AeosGenealogy is Ownable {
     address public root;
     uint256 public totalUsers;
     uint256 public transactionCooldown = 9 seconds;
-    uint256 public constant maxIteration = 100;
+    uint256 public maxIteration = 100;
+    uint256 public constant GAS_BUFFER = 300_000;
+    mapping(address => uint256) public userMaxPropagationDepth;
 
     /* ------------------------------------------------------------------ */
     /*                               EVENTS                               */
@@ -59,6 +62,9 @@ contract AeosGenealogy is Ownable {
         address newLeft,
         address newRight
     );
+    event UserTraversalDepthReduced(address indexed user, uint256 newDepth);
+    event AdminAdded(address indexed admin);
+    event AdminRemoved(address indexed admin);
 
     /* ------------------------------------------------------------------ */
     /*                              MODIFIERS                             */
@@ -81,6 +87,11 @@ contract AeosGenealogy is Ownable {
         _;
     }
 
+    modifier onlyAdmin() {
+        require(msg.sender == owner() || isAdmin[msg.sender], "NOT_AUTHORIZED_ADMIN");
+        _;
+    }
+
     /* ------------------------------------------------------------------ */
     /*                            CONSTRUCTOR                             */
     /* ------------------------------------------------------------------ */
@@ -89,6 +100,7 @@ contract AeosGenealogy is Ownable {
         require(_root != address(0), "ZERO_ROOT");
         root = _root;
         isUser[_root] = true;
+        isAdmin[_root] = true;
         totalUsers = 1;
     }
 
@@ -139,14 +151,26 @@ contract AeosGenealogy is Ownable {
     /**
      * @dev Find the next open binary slot by traversing down a preferred leg.
      *      BFS toward `_group` (0=LEFT, 1=RIGHT) to find an empty slot.
+     *      Dynamically adjusts per-user traversal depth if gas runs low.
      */
     function _binaryOpenNode(
         address _placement,
         bool _group
-    ) internal view returns (address, bool) {
+    ) internal returns (address, bool) {
         address origin = _placement;
+        uint256 effectiveDepth = userMaxPropagationDepth[msg.sender] > 0
+            ? userMaxPropagationDepth[msg.sender]
+            : maxIteration;
         uint256 iterations = 0;
-        while (_placement != address(0) && iterations < maxIteration) {
+
+        while (_placement != address(0) && iterations < effectiveDepth) {
+            if (gasleft() < GAS_BUFFER) {
+                uint256 newDepth = iterations > 1 ? iterations - 1 : 1;
+                userMaxPropagationDepth[msg.sender] = newDepth;
+                emit UserTraversalDepthReduced(msg.sender, newDepth);
+                break;
+            }
+
             BinaryData memory node = binary[_placement];
             if (_group) {
                 if (node.rightAddress != address(0)) {
@@ -168,14 +192,26 @@ contract AeosGenealogy is Ownable {
 
     /**
      * @dev Find the weakest leg (fewest direct children) for balanced tree growth.
+     *      Dynamically adjusts per-user traversal depth if gas runs low.
      */
     function _binaryWeakLegNode(
         address _user,
         bool _group
-    ) internal view returns (address _address, bool _position) {
+    ) internal returns (address _address, bool _position) {
         address current = _user;
+        uint256 effectiveDepth = userMaxPropagationDepth[msg.sender] > 0
+            ? userMaxPropagationDepth[msg.sender]
+            : maxIteration;
         uint256 iterations = 0;
-        while (current != address(0) && iterations < maxIteration) {
+
+        while (current != address(0) && iterations < effectiveDepth) {
+            if (gasleft() < GAS_BUFFER) {
+                uint256 newDepth = iterations > 1 ? iterations - 1 : 1;
+                userMaxPropagationDepth[msg.sender] = newDepth;
+                emit UserTraversalDepthReduced(msg.sender, newDepth);
+                break;
+            }
+
             iterations++;
             BinaryData memory node = binary[current];
             bool hasLeft = node.leftAddress != address(0);
@@ -240,11 +276,21 @@ contract AeosGenealogy is Ownable {
     function getPlacement(
         address _user,
         uint8 _options
-    ) external view returns (address _address, bool _position) {
+    ) external returns (address _address, bool _position) {
         require(isUser[_user], "USER_NOT_FOUND");
         if (_options == 0) return _binaryOpenNode(_user, false);
         if (_options == 1) return _binaryOpenNode(_user, true);
         return (_user, false);
+    }
+
+    /**
+     * @notice Get the effective traversal depth for a user.
+     *         Returns per-user depth if set, otherwise the global maxIteration.
+     */
+    function getUserTraversalDepth(address user) external view returns (uint256) {
+        return userMaxPropagationDepth[user] > 0
+            ? userMaxPropagationDepth[user]
+            : maxIteration;
     }
 
     /* ================================================================ */
@@ -258,7 +304,7 @@ contract AeosGenealogy is Ownable {
     function updateAffiliateData(
         address user,
         address newParent
-    ) external onlyOwner {
+    ) external onlyAdmin {
         require(isUser[user], "USER_NOT_FOUND");
         require(newParent != user, "SELF_PARENT");
         require(isUser[newParent], "NEW_PARENT_NOT_FOUND");
@@ -293,7 +339,7 @@ contract AeosGenealogy is Ownable {
         address newParent,
         address newLeftAddr,
         address newRightAddr
-    ) external onlyOwner {
+    ) external onlyAdmin {
         require(isUser[user], "USER_NOT_FOUND");
 
         BinaryData storage bin = binary[user];
@@ -323,6 +369,17 @@ contract AeosGenealogy is Ownable {
                 newLeftAddr == address(0) || isUser[newLeftAddr],
                 "LEFT_NOT_FOUND"
             );
+            // Orphan old left child's descendants if it exists
+            address oldLeftAddr = bin.leftAddress;
+            if (oldLeftAddr != address(0) && oldLeftAddr != newLeftAddr) {
+                BinaryData storage oldLeftBin = binary[oldLeftAddr];
+                if (oldLeftBin.leftAddress != address(0)) {
+                    binary[oldLeftBin.leftAddress].parent = address(0);
+                }
+                if (oldLeftBin.rightAddress != address(0)) {
+                    binary[oldLeftBin.rightAddress].parent = address(0);
+                }
+            }
             bin.leftAddress = newLeftAddr;
         }
 
@@ -332,6 +389,17 @@ contract AeosGenealogy is Ownable {
                 newRightAddr == address(0) || isUser[newRightAddr],
                 "RIGHT_NOT_FOUND"
             );
+            // Orphan old right child's descendants if it exists
+            address oldRightAddr = bin.rightAddress;
+            if (oldRightAddr != address(0) && oldRightAddr != newRightAddr) {
+                BinaryData storage oldRightBin = binary[oldRightAddr];
+                if (oldRightBin.leftAddress != address(0)) {
+                    binary[oldRightBin.leftAddress].parent = address(0);
+                }
+                if (oldRightBin.rightAddress != address(0)) {
+                    binary[oldRightBin.rightAddress].parent = address(0);
+                }
+            }
             bin.rightAddress = newRightAddr;
         }
 
@@ -344,7 +412,7 @@ contract AeosGenealogy is Ownable {
     function updateIsUser(
         address user,
         bool newIsUserValue
-    ) external onlyOwner {
+    ) external onlyAdmin {
         require(user != address(0), "ZERO_ADDRESS");
 
         if (newIsUserValue != isUser[user]) {
@@ -360,8 +428,52 @@ contract AeosGenealogy is Ownable {
     /**
      * @notice Set transaction cooldown for anti-spam protection.
      */
-    function setTransactionCooldown(uint256 secs) external onlyOwner {
+    function setTransactionCooldown(uint256 secs) external onlyAdmin {
         require(secs <= 5 minutes, "COOLDOWN_TOO_LONG");
         transactionCooldown = secs;
+    }
+
+    /**
+     * @notice Set global maximum traversal depth for tree operations.
+     *         Prevents excessively deep trees from causing OOG errors.
+     */
+    function setMaxIteration(uint256 depth) external onlyAdmin {
+        require(depth >= 1 && depth <= 1000, "INVALID_DEPTH");
+        maxIteration = depth;
+    }
+
+    /* ================================================================ */
+    /*                     ADMIN MANAGEMENT (OWNER ONLY)               */
+    /* ================================================================ */
+
+    /**
+     * @notice Add an admin address (owner only)
+     * @param adminAddress The address to grant admin privileges
+     */
+    function addAdmin(address adminAddress) external onlyOwner {
+        require(adminAddress != address(0), "ZERO_ADDRESS");
+        require(!isAdmin[adminAddress], "ALREADY_ADMIN");
+        isAdmin[adminAddress] = true;
+        emit AdminAdded(adminAddress);
+    }
+
+    /**
+     * @notice Remove an admin address (owner only)
+     * @param adminAddress The address to revoke admin privileges
+     */
+    function removeAdmin(address adminAddress) external onlyOwner {
+        require(adminAddress != address(0), "ZERO_ADDRESS");
+        require(isAdmin[adminAddress], "NOT_ADMIN");
+        isAdmin[adminAddress] = false;
+        emit AdminRemoved(adminAddress);
+    }
+
+    /**
+     * @notice Check if an address is admin (owner or in admin mapping)
+     * @param addr The address to check
+     * @return True if address is owner or designated admin
+     */
+    function checkIsAdmin(address addr) external view returns (bool) {
+        return addr == owner() || isAdmin[addr];
     }
 }
