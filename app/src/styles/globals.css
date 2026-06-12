@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+/* Professional Theme - Light & Dark Mode Support */
+:root {
+  --card: #ffffff;
+  --ring: #6366f1;
+  --input: #d1d5db;
+  --muted: #f3f4f6;
+  --accent: #e0e7ff;
+  --border: #d1d5db;
+  --radius: 0.5rem;
+  --chart-1: #6366f1;
+  --chart-2: #4f46e5;
+  --chart-3: #4338ca;
+  --chart-4: #3730a3;
+  --chart-5: #312e81;
+  --popover: #ffffff;
+  --primary: #6366f1;
+  --sidebar: #f3f4f6;
+  --font-mono: JetBrains Mono, monospace;
+  --font-sans: Inter, sans-serif;
+  --secondary: #e5e7eb;
+  --background: #f8fafc;
+  --font-serif: Merriweather, serif;
+  --foreground: #1e293b;
+  --destructive: #ef4444;
+  --shadow-blur: 8px;
+  --shadow-color: hsl(0 0% 0%);
+  --sidebar-ring: #6366f1;
+  --shadow-spread: -1px;
+  --shadow-opacity: 0.1;
+  --sidebar-accent: #e0e7ff;
+  --sidebar-border: #d1d5db;
+  --card-foreground: #1e293b;
+  --shadow-offset-x: 0px;
+  --shadow-offset-y: 4px;
+  --sidebar-primary: #6366f1;
+  --muted-foreground: #6b7280;
+  --accent-foreground: #374151;
+  --popover-foreground: #1e293b;
+  --primary-foreground: #ffffff;
+  --sidebar-foreground: #1e293b;
+  --secondary-foreground: #374151;
+  --destructive-foreground: #ffffff;
+  --sidebar-accent-foreground: #374151;
+  --sidebar-primary-foreground: #ffffff;
+}
+
+.dark {
+  --card: #1e293b;
+  --ring: #818cf8;
+  --input: #4b5563;
+  --muted: #1e293b;
+  --accent: #374151;
+  --border: #4b5563;
+  --chart-1: #818cf8;
+  --chart-2: #6366f1;
+  --chart-3: #4f46e5;
+  --chart-4: #4338ca;
+  --chart-5: #3730a3;
+  --popover: #1e293b;
+  --primary: #818cf8;
+  --sidebar: #1e293b;
+  --secondary: #2d3748;
+  --background: #0f172a;
+  --foreground: #e2e8f0;
+  --destructive: #ef4444;
+  --sidebar-ring: #818cf8;
+  --sidebar-accent: #374151;
+  --sidebar-border: #4b5563;
+  --card-foreground: #e2e8f0;
+  --sidebar-primary: #818cf8;
+  --muted-foreground: #9ca3af;
+  --accent-foreground: #d1d5db;
+  --popover-foreground: #e2e8f0;
+  --primary-foreground: #0f172a;
+  --sidebar-foreground: #e2e8f0;
+  --secondary-foreground: #d1d5db;
+  --destructive-foreground: #0f172a;
+  --sidebar-accent-foreground: #d1d5db;
+  --sidebar-primary-foreground: #0f172a;
+}
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    transition: background-color 0.3s, color 0.3s;
+  }
+}
+
+@layer components {
+  /* Utility Classes */
+  .container-aeos {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Cards */
+  .card-aeos {
+    @apply rounded-lg p-6 border transition-colors;
+    background-color: var(--card);
+    border-color: var(--border);
+    color: var(--card-foreground);
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply px-6 py-3 font-semibold rounded-lg transition duration-300;
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .btn-primary:hover {
+    filter: brightness(1.1);
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 font-semibold rounded-lg transition duration-300 border;
+    background-color: transparent;
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  /* Inputs */
+  .input-aeos {
+    @apply w-full px-4 py-3 rounded-lg transition duration-300 border;
+    background-color: var(--input);
+    border-color: var(--border);
+    color: var(--foreground);
+  }
+
+  .input-aeos::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  .input-aeos:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+
+  /* Badges */
+  .badge-success {
+    @apply inline-flex items-center px-3 py-1 text-white text-sm font-medium rounded-full;
+    background-color: #10b981;
+  }
+
+  .badge-warning {
+    @apply inline-flex items-center px-3 py-1 text-white text-sm font-medium rounded-full;
+    background-color: #f59e0b;
+  }
+
+  .badge-info {
+    @apply inline-flex items-center px-3 py-1 text-white text-sm font-medium rounded-full;
+    background-color: #8b5cf6;
+  }
+
+  /* Theme Variables for Tailwind */
+  .text-primary {
+    color: var(--primary);
+  }
+
+  .bg-primary {
+    background-color: var(--primary);
+  }
+
+  .text-card-foreground {
+    color: var(--card-foreground);
+  }
+
+  .bg-card {
+    background-color: var(--card);
+  }
+
+  .border-border {
+    border-color: var(--border);
+  }
+}
+
+/* Animation for theme switching */
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+}
