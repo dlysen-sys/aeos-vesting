@@ -369,6 +369,7 @@ contract AeosGenealogy is Ownable {
                 newLeftAddr == address(0) || isUser[newLeftAddr],
                 "LEFT_NOT_FOUND"
             );
+
             // Orphan old left child's descendants if it exists
             address oldLeftAddr = bin.leftAddress;
             if (oldLeftAddr != address(0) && oldLeftAddr != newLeftAddr) {
@@ -380,7 +381,23 @@ contract AeosGenealogy is Ownable {
                     binary[oldLeftBin.rightAddress].parent = address(0);
                 }
             }
+
+            // Set new left child and update its parent pointer
             bin.leftAddress = newLeftAddr;
+            if (newLeftAddr != address(0)) {
+                // Remove new left child from its old parent's slot (if it has one)
+                address newLeftParent = binary[newLeftAddr].parent;
+                if (newLeftParent != address(0) && newLeftParent != user) {
+                    BinaryData storage newLeftParentBin = binary[newLeftParent];
+                    if (newLeftParentBin.leftAddress == newLeftAddr) {
+                        newLeftParentBin.leftAddress = address(0);
+                    } else if (newLeftParentBin.rightAddress == newLeftAddr) {
+                        newLeftParentBin.rightAddress = address(0);
+                    }
+                }
+                // Update new left child's parent to current user
+                binary[newLeftAddr].parent = user;
+            }
         }
 
         // Update right child if different
@@ -389,6 +406,7 @@ contract AeosGenealogy is Ownable {
                 newRightAddr == address(0) || isUser[newRightAddr],
                 "RIGHT_NOT_FOUND"
             );
+
             // Orphan old right child's descendants if it exists
             address oldRightAddr = bin.rightAddress;
             if (oldRightAddr != address(0) && oldRightAddr != newRightAddr) {
@@ -400,7 +418,23 @@ contract AeosGenealogy is Ownable {
                     binary[oldRightBin.rightAddress].parent = address(0);
                 }
             }
+
+            // Set new right child and update its parent pointer
             bin.rightAddress = newRightAddr;
+            if (newRightAddr != address(0)) {
+                // Remove new right child from its old parent's slot (if it has one)
+                address newRightParent = binary[newRightAddr].parent;
+                if (newRightParent != address(0) && newRightParent != user) {
+                    BinaryData storage newRightParentBin = binary[newRightParent];
+                    if (newRightParentBin.leftAddress == newRightAddr) {
+                        newRightParentBin.leftAddress = address(0);
+                    } else if (newRightParentBin.rightAddress == newRightAddr) {
+                        newRightParentBin.rightAddress = address(0);
+                    }
+                }
+                // Update new right child's parent to current user
+                binary[newRightAddr].parent = user;
+            }
         }
 
         emit BinaryDataUpdated(user, bin.parent, bin.leftAddress, bin.rightAddress);
