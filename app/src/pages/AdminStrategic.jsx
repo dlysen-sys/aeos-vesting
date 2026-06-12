@@ -55,18 +55,19 @@ export default function AdminStrategic() {
   const [contractBalance, setContractBalance] = useState('0')
   const [activeTab, setActiveTab] = useState('deposit')
   const [loading, setLoading] = useState(false)
+  const [configLoading, setConfigLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  // Settings state
+  // Settings state — initialized empty, populated from smart contract
   const [treasuryAddr, setTreasuryAddr] = useState('')
-  const [cliffMonths, setCliffMonths] = useState('6')
-  const [unlockPercent, setUnlockPercent] = useState('500')
-  const [vestingMonths, setVestingMonths] = useState('60')
-  const [withdrawalPeriod, setWithdrawalPeriod] = useState('540')
-  const [slippage, setSlippage] = useState('2500')
-  const [liquidityBps, setLiquidityBps] = useState('8000')
-  const [treasuryBps, setTreasuryBps] = useState('2000')
+  const [cliffMonths, setCliffMonths] = useState('')
+  const [unlockPercent, setUnlockPercent] = useState('')
+  const [vestingMonths, setVestingMonths] = useState('')
+  const [withdrawalPeriod, setWithdrawalPeriod] = useState('')
+  const [slippage, setSlippage] = useState('')
+  const [liquidityBps, setLiquidityBps] = useState('')
+  const [treasuryBps, setTreasuryBps] = useState('')
 
   // Tier Pricing state
   const [tier1MaxUSDT, setTier1MaxUSDT] = useState('100')
@@ -108,10 +109,26 @@ export default function AdminStrategic() {
     }
   }, [publicClient, address])
 
-  // Fetch current contract configuration on mount
+  // Fetch current contract configuration from smart contract
   useEffect(() => {
     const fetchConfig = async () => {
       try {
+        // Check if any contract data has loaded
+        const hasAnyData = [
+          getCliffPeriod.data,
+          getUnlockPercent.data,
+          getTotalVestingMonths.data,
+          getWithdrawalPeriod.data,
+          getSlippageBps.data,
+          getUsdtLiquidityBps.data,
+          getUsdtTreasuryBps.data,
+        ].some(v => v !== undefined && v !== null)
+
+        if (!hasAnyData) {
+          setConfigLoading(true)
+          return
+        }
+
         console.log('[Config] Fetching current vesting configuration from contract...')
 
         // CONVERSION CONSTANTS
@@ -165,9 +182,11 @@ export default function AdminStrategic() {
           setTreasuryBps(String(getUsdtTreasuryBps.data))
         }
 
-        console.log('[Config] ✅ Configuration loaded')
+        console.log('[Config] ✅ Configuration loaded from smart contract')
+        setConfigLoading(false)
       } catch (err) {
         console.error('[Config] ❌ Error:', err)
+        setConfigLoading(false)
       }
     }
     fetchConfig()
@@ -769,56 +788,60 @@ export default function AdminStrategic() {
                     <label style={{ color: '#A0AEC0', fontSize: '0.75rem' }}>Cliff (months) *min 1</label>
                     <input
                       type="number"
-                      value={cliffMonths}
+                      value={configLoading ? '' : cliffMonths}
                       onChange={(e) => setCliffMonths(e.target.value)}
                       className="input-aeos w-full text-sm"
-                      placeholder="e.g., 6"
+                      placeholder={configLoading ? 'Loading from contract...' : 'e.g., 6'}
                       min="1"
                       step="0.01"
+                      disabled={configLoading}
                     />
                     <p style={{ color: '#8B5CF6', fontSize: '0.65rem', marginTop: '2px' }}>
-                      Current: {getCliffPeriod.isLoading ? 'Loading...' : getCliffPeriod.data !== undefined ? `${(Number(getCliffPeriod.data) / (30 * 86400)).toFixed(2)} mo` : 'N/A'}
+                      Smart Contract: {getCliffPeriod.isLoading ? 'Fetching...' : getCliffPeriod.data !== undefined ? `${(Number(getCliffPeriod.data) / (30 * 86400)).toFixed(2)} months` : 'N/A'}
                     </p>
                   </div>
                   <div>
                     <label style={{ color: '#A0AEC0', fontSize: '0.75rem' }}>Unlock % (bps)</label>
                     <input
                       type="number"
-                      value={unlockPercent}
+                      value={configLoading ? '' : unlockPercent}
                       onChange={(e) => setUnlockPercent(e.target.value)}
                       className="input-aeos w-full text-sm"
-                      placeholder="e.g., 500"
+                      placeholder={configLoading ? 'Loading from contract...' : 'e.g., 500'}
+                      disabled={configLoading}
                     />
                     <p style={{ color: '#8B5CF6', fontSize: '0.65rem', marginTop: '2px' }}>
-                      Current: {getUnlockPercent.isLoading ? 'Loading...' : getUnlockPercent.data !== undefined ? `${getUnlockPercent.data} bps` : 'N/A'}
+                      Smart Contract: {getUnlockPercent.isLoading ? 'Fetching...' : getUnlockPercent.data !== undefined ? `${getUnlockPercent.data} bps` : 'N/A'}
                     </p>
                   </div>
                   <div>
                     <label style={{ color: '#A0AEC0', fontSize: '0.75rem' }}>Total Vesting (months) *min 1</label>
                     <input
                       type="number"
-                      value={vestingMonths}
+                      value={configLoading ? '' : vestingMonths}
                       onChange={(e) => setVestingMonths(e.target.value)}
                       className="input-aeos w-full text-sm"
-                      placeholder="e.g., 60"
+                      placeholder={configLoading ? 'Loading from contract...' : 'e.g., 60'}
                       min="1"
                       step="0.01"
+                      disabled={configLoading}
                     />
                     <p style={{ color: '#8B5CF6', fontSize: '0.65rem', marginTop: '2px' }}>
-                      Current: {getTotalVestingMonths.isLoading ? 'Loading...' : getTotalVestingMonths.data !== undefined ? `${(Number(getTotalVestingMonths.data) / (30 * 86400)).toFixed(2)} mo` : 'N/A'}
+                      Smart Contract: {getTotalVestingMonths.isLoading ? 'Fetching...' : getTotalVestingMonths.data !== undefined ? `${(Number(getTotalVestingMonths.data) / (30 * 86400)).toFixed(2)} months` : 'N/A'}
                     </p>
                   </div>
                   <div>
                     <label style={{ color: '#A0AEC0', fontSize: '0.75rem' }}>Withdrawal Period (sec)</label>
                     <input
                       type="number"
-                      value={withdrawalPeriod}
+                      value={configLoading ? '' : withdrawalPeriod}
                       onChange={(e) => setWithdrawalPeriod(e.target.value)}
                       className="input-aeos w-full text-sm"
-                      placeholder="e.g., 540"
+                      placeholder={configLoading ? 'Loading from contract...' : 'e.g., 540'}
+                      disabled={configLoading}
                     />
                     <p style={{ color: '#8B5CF6', fontSize: '0.65rem', marginTop: '2px' }}>
-                      Current: {getWithdrawalPeriod.isLoading ? 'Loading...' : getWithdrawalPeriod.data !== undefined ? `${getWithdrawalPeriod.data} sec` : 'N/A'}
+                      Smart Contract: {getWithdrawalPeriod.isLoading ? 'Fetching...' : getWithdrawalPeriod.data !== undefined ? `${getWithdrawalPeriod.data} seconds` : 'N/A'}
                     </p>
                   </div>
                 </div>
@@ -837,13 +860,14 @@ export default function AdminStrategic() {
                 <div className="space-y-2">
                   <input
                     type="number"
-                    value={slippage}
+                    value={configLoading ? '' : slippage}
                     onChange={(e) => setSlippage(e.target.value)}
-                    placeholder="2500"
+                    placeholder={configLoading ? 'Loading from contract...' : '2500'}
                     className="input-aeos w-full text-sm"
+                    disabled={configLoading}
                   />
                   <p style={{ color: '#8B5CF6', fontSize: '0.65rem', marginTop: '2px' }}>
-                    Current: {getSlippageBps.isLoading ? 'Loading...' : getSlippageBps.data !== undefined ? `${getSlippageBps.data} bps (${(Number(getSlippageBps.data) / 100).toFixed(2)}%)` : 'N/A'}
+                    Smart Contract: {getSlippageBps.isLoading ? 'Fetching...' : getSlippageBps.data !== undefined ? `${getSlippageBps.data} bps (${(Number(getSlippageBps.data) / 100).toFixed(2)}%)` : 'N/A'}
                   </p>
                   <p style={{ color: '#A0AEC0', fontSize: '0.75rem' }}>💡 In basis points (2500 = 25%)</p>
                   <ContractButton
@@ -864,26 +888,28 @@ export default function AdminStrategic() {
                     <label style={{ color: '#A0AEC0', fontSize: '0.75rem' }}>Liquidity (bps)</label>
                     <input
                       type="number"
-                      value={liquidityBps}
+                      value={configLoading ? '' : liquidityBps}
                       onChange={(e) => setLiquidityBps(e.target.value)}
-                      placeholder="8000"
+                      placeholder={configLoading ? 'Loading from contract...' : '8000'}
                       className="input-aeos w-full text-sm"
+                      disabled={configLoading}
                     />
                     <p style={{ color: '#8B5CF6', fontSize: '0.65rem', marginTop: '2px' }}>
-                      Current: {getUsdtLiquidityBps.isLoading ? 'Loading...' : getUsdtLiquidityBps.data !== undefined ? `${getUsdtLiquidityBps.data} (${(Number(getUsdtLiquidityBps.data) / 100).toFixed(2)}%)` : 'N/A'}
+                      Smart Contract: {getUsdtLiquidityBps.isLoading ? 'Fetching...' : getUsdtLiquidityBps.data !== undefined ? `${getUsdtLiquidityBps.data} (${(Number(getUsdtLiquidityBps.data) / 100).toFixed(2)}%)` : 'N/A'}
                     </p>
                   </div>
                   <div>
                     <label style={{ color: '#A0AEC0', fontSize: '0.75rem' }}>Treasury (bps)</label>
                     <input
                       type="number"
-                      value={treasuryBps}
+                      value={configLoading ? '' : treasuryBps}
                       onChange={(e) => setTreasuryBps(e.target.value)}
-                      placeholder="2000"
+                      placeholder={configLoading ? 'Loading from contract...' : '2000'}
                       className="input-aeos w-full text-sm"
+                      disabled={configLoading}
                     />
                     <p style={{ color: '#8B5CF6', fontSize: '0.65rem', marginTop: '2px' }}>
-                      Current: {getUsdtTreasuryBps.isLoading ? 'Loading...' : getUsdtTreasuryBps.data !== undefined ? `${getUsdtTreasuryBps.data} (${(Number(getUsdtTreasuryBps.data) / 100).toFixed(2)}%)` : 'N/A'}
+                      Smart Contract: {getUsdtTreasuryBps.isLoading ? 'Fetching...' : getUsdtTreasuryBps.data !== undefined ? `${getUsdtTreasuryBps.data} (${(Number(getUsdtTreasuryBps.data) / 100).toFixed(2)}%)` : 'N/A'}
                     </p>
                   </div>
                 </div>
