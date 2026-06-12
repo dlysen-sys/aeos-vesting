@@ -465,14 +465,15 @@ contract AeosVestingAdvisors is Ownable, ReentrancyGuard {
     // ==================== PRIVATE/INTERNAL FUNCTIONS ====================
 
     /**
-     * @dev Get unlocked amount using current unlockPercentPerPeriod
+     * @dev Get unlocked amount using current unlockPercentPerPeriod and withdrawalPeriod
      */
     function getUnlockedAmount(uint256 totalAmount, uint256 cliffEnd, uint256 vestingEnd) internal view returns (uint256) {
         return VestingMath.calculateCliffMonthlyRelease(
             totalAmount,
             cliffEnd,
             vestingEnd,
-            unlockPercentPerPeriod
+            unlockPercentPerPeriod,
+            withdrawalPeriod
         );
     }
 

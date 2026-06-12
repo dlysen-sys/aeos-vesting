@@ -3,35 +3,22 @@ pragma solidity ^0.8.24;
 
 library VestingMath {
     uint256 private constant BPS = 10000; // Basis points denominator (10000 bps = 100%)
-
-    // ⚠️ TESTING vs PRODUCTION period lengths
-    // BEFORE MAINNET DEPLOYMENT: Refactor to accept these as owner-configurable parameters
-    // See OWNER_CONFIGURABLE_PERIODS.md for the recommended architecture
-
-    // QUARTERLY PERIOD: Default 90 days, Testing 1 minute (for instant unlocks after cliff)
-    // To revert: Change to: uint256 internal constant QUARTERLY_PERIOD = 90 days;
-    uint256 internal constant QUARTERLY_PERIOD = 1 minutes; // 60 seconds (testing) | 7,776,000 seconds (production: 90 days)
-
-    // MONTHLY PERIOD: Default 30 days, Testing 9 minutes
-    // To revert: Change to: uint256 internal constant MONTHLY_PERIOD = 30 days;
-    uint256 internal constant MONTHLY_PERIOD = 9 minutes; // 540 seconds (testing) | 2,592,000 seconds (production: 30 days)
-
-    // YEARLY PERIOD: Default 365 days, Testing 1 hour
-    // To revert: Change to: uint256 internal constant YEARLY_PERIOD = 365 days;
-    uint256 internal constant YEARLY_PERIOD = 1 hours; // 3,600 seconds (testing) | 31,536,000 seconds (production: 365 days)
+    // Period lengths now passed as parameters to calculation functions, not hardcoded constants
     /**
-     * @dev Calculate unlocked amount for cliff + monthly release vesting (Advisors)
+     * @dev Calculate unlocked amount for cliff + periodic release vesting
      * @param totalAmount Total AEOS vesting amount
      * @param cliffEnd Timestamp when cliff ends
      * @param vestingEnd Timestamp when vesting fully completes
-     * @param releasePercentMonthly Monthly release percentage (e.g., 250 = 2.5% per period)
+     * @param releasePercentPeriod Release percentage per period (e.g., 250 = 2.5% per period)
+     * @param periodLength Period length in seconds (e.g., 2,592,000 = 30 days for monthly)
      * @return unlocked Amount unlocked so far
      */
     function calculateCliffMonthlyRelease(
         uint256 totalAmount,
         uint256 cliffEnd,
         uint256 vestingEnd,
-        uint256 releasePercentMonthly
+        uint256 releasePercentPeriod,
+        uint256 periodLength
     ) internal view returns (uint256 unlocked) {
         uint256 now_ = block.timestamp;
 
@@ -45,19 +32,19 @@ library VestingMath {
             return totalAmount;
         }
 
-        // Calculate months elapsed since cliff
+        // Calculate periods elapsed since cliff
         uint256 secondsSinceCliff = now_ - cliffEnd;
         uint256 totalSeconds = vestingEnd - cliffEnd;
-        uint256 monthsElapsed = secondsSinceCliff / MONTHLY_PERIOD;
+        uint256 periodsElapsed = secondsSinceCliff / periodLength;
 
-        // Cap months to maximum vesting period
-        uint256 maxMonths = totalSeconds / MONTHLY_PERIOD;
-        if (monthsElapsed > maxMonths) {
-            monthsElapsed = maxMonths;
+        // Cap periods to maximum vesting period
+        uint256 maxPeriods = totalSeconds / periodLength;
+        if (periodsElapsed > maxPeriods) {
+            periodsElapsed = maxPeriods;
         }
 
         // Calculate total unlock percentage
-        uint256 unlockedPercent = monthsElapsed * releasePercentMonthly;
+        uint256 unlockedPercent = periodsElapsed * releasePercentPeriod;
         if (unlockedPercent > BPS) {
             unlockedPercent = BPS; // Cap at 100%
         }
@@ -67,18 +54,20 @@ library VestingMath {
     }
 
     /**
-     * @dev Calculate unlocked amount for cliff + quarterly release vesting (Strategic Investors)
+     * @dev Calculate unlocked amount for cliff + periodic release vesting (generalized)
      * @param totalAmount Total AEOS vesting amount
      * @param cliffEnd Timestamp when cliff ends
      * @param vestingEnd Timestamp when vesting fully completes
-     * @param releasePercentQuarterly Quarterly release percentage (e.g., 500 = 5% per period)
+     * @param releasePercentPeriod Release percentage per period (e.g., 500 = 5% per period)
+     * @param periodLength Period length in seconds (e.g., 7,776,000 = 90 days for quarterly)
      * @return unlocked Amount unlocked so far
      */
     function calculateCliffQuarterlyRelease(
         uint256 totalAmount,
         uint256 cliffEnd,
         uint256 vestingEnd,
-        uint256 releasePercentQuarterly
+        uint256 releasePercentPeriod,
+        uint256 periodLength
     ) internal view returns (uint256 unlocked) {
         uint256 now_ = block.timestamp;
 
@@ -92,19 +81,19 @@ library VestingMath {
             return totalAmount;
         }
 
-        // Calculate quarters elapsed since cliff
+        // Calculate periods elapsed since cliff
         uint256 secondsSinceCliff = now_ - cliffEnd;
         uint256 totalSeconds = vestingEnd - cliffEnd;
-        uint256 quartersElapsed = secondsSinceCliff / QUARTERLY_PERIOD; // Whole number only
+        uint256 periodsElapsed = secondsSinceCliff / periodLength; // Whole number only
 
-        // Cap quarters to maximum vesting period
-        uint256 maxQuarters = totalSeconds / QUARTERLY_PERIOD;
-        if (quartersElapsed > maxQuarters) {
-            quartersElapsed = maxQuarters;
+        // Cap periods to maximum vesting period
+        uint256 maxPeriods = totalSeconds / periodLength;
+        if (periodsElapsed > maxPeriods) {
+            periodsElapsed = maxPeriods;
         }
 
         // Calculate total unlock percentage
-        uint256 unlockedPercent = quartersElapsed * releasePercentQuarterly;
+        uint256 unlockedPercent = periodsElapsed * releasePercentPeriod;
         if (unlockedPercent > BPS) {
             unlockedPercent = BPS; // Cap at 100%
         }
@@ -158,18 +147,20 @@ library VestingMath {
     }
 
     /**
-     * @dev Calculate unlocked amount for yearly release
+     * @dev Calculate unlocked amount for initial + periodic release (yearly or custom period)
      * @param totalAmount Total vesting amount
      * @param initialPercent Initial release percentage (e.g., 1000 = 10%)
      * @param startTime Timestamp when vesting begins
-     * @param yearlyPercent Percentage released per year (e.g., 1000 = 10%)
+     * @param periodPercent Percentage released per period (e.g., 1000 = 10% per year)
+     * @param periodLength Period length in seconds (e.g., 31,536,000 = 365 days for yearly)
      * @return unlocked Amount unlocked so far
      */
     function calculateInitialPlusYearlyRelease(
         uint256 totalAmount,
         uint256 initialPercent,
         uint256 startTime,
-        uint256 yearlyPercent
+        uint256 periodPercent,
+        uint256 periodLength
     ) internal view returns (uint256 unlocked) {
         uint256 now_ = block.timestamp;
 
@@ -180,12 +171,12 @@ library VestingMath {
         }
 
         uint256 secondsElapsed = now_ - startTime;
-        uint256 yearsElapsed = secondsElapsed / YEARLY_PERIOD; // Integer division → whole number only
+        uint256 periodsElapsed = secondsElapsed / periodLength; // Integer division → whole number only
 
         uint256 periodicAmount = totalAmount - initialAmount;
-        uint256 yearlyUnlocked = (periodicAmount * yearsElapsed * yearlyPercent) / BPS;
+        uint256 periodicUnlocked = (periodicAmount * periodsElapsed * periodPercent) / BPS;
 
-        unlocked = initialAmount + yearlyUnlocked;
+        unlocked = initialAmount + periodicUnlocked;
         if (unlocked > totalAmount) {
             unlocked = totalAmount;
         }

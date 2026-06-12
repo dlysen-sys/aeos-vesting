@@ -27,7 +27,12 @@ contract AeosVestingTeam is Ownable, ReentrancyGuard {
     // TESTING:    uint256 public constant CLIFF_SECONDS = 54 minutes;
     uint256 public constant CLIFF_SECONDS = 54 minutes; // 3,240 seconds (testing) | 46,656,000 seconds (production: 540 days)
 
-    uint256 public constant UNLOCK_PERCENT_MONTHLY = 200; // 2%
+    uint256 public constant UNLOCK_PERCENT_MONTHLY = 200; // 2% per period
+
+    // WITHDRAWAL PERIOD: Default 30 days, Testing 9 minutes (monthly unlock)
+    // PRODUCTION: uint256 public constant WITHDRAWAL_PERIOD = 30 days;
+    // TESTING:    uint256 public constant WITHDRAWAL_PERIOD = 9 minutes;
+    uint256 public constant WITHDRAWAL_PERIOD = 9 minutes; // 540 seconds (testing) | 2,592,000 seconds (production: 30 days)
 
     // VESTING END TIME: Default 60 months total, Testing 5 hours total
     // Note: vestingEnd is calculated as: block.timestamp + (VESTING_MONTHS * 30 days) in production
@@ -102,7 +107,8 @@ contract AeosVestingTeam is Ownable, ReentrancyGuard {
             tm.totalAllocated,
             tm.cliffEnd,
             tm.vestingEnd,
-            UNLOCK_PERCENT_MONTHLY
+            UNLOCK_PERCENT_MONTHLY,
+            WITHDRAWAL_PERIOD
         );
 
         return unlocked > tm.released ? unlocked - tm.released : 0;
@@ -140,7 +146,8 @@ contract AeosVestingTeam is Ownable, ReentrancyGuard {
             tm.totalAllocated,
             tm.cliffEnd,
             tm.vestingEnd,
-            UNLOCK_PERCENT_MONTHLY
+            UNLOCK_PERCENT_MONTHLY,
+            WITHDRAWAL_PERIOD
         );
 
         return (tm.totalAllocated, tm.released, unlocked, tm.cliffEnd, tm.vestingEnd);
