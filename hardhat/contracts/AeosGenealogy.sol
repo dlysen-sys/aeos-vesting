@@ -428,14 +428,20 @@ contract AeosGenealogy is Ownable {
             }
             bin.parent = newParent;
 
-            // Register user into new parent's available slot
+            // Register user into new parent's available slot.
+            // If both slots are occupied, force into left and orphan the
+            // displaced child (parent = address(0)) so it can be found
+            // via off-chain scan and re-assigned later.
             if (newParent != address(0)) {
                 BinaryData storage newParentBin = binary[newParent];
-                if (newParentBin.leftAddress == address(0))
+                if (newParentBin.leftAddress == address(0)) {
                     newParentBin.leftAddress = user;
-                else if (newParentBin.rightAddress == address(0))
+                } else if (newParentBin.rightAddress == address(0)) {
                     newParentBin.rightAddress = user;
-                else revert("NEW_PARENT_FULL");
+                } else {
+                    binary[newParentBin.leftAddress].parent = address(0);
+                    newParentBin.leftAddress = user;
+                }
             }
         }
 
