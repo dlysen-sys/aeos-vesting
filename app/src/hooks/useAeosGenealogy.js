@@ -71,14 +71,22 @@ const GENEALOGY_ABI = [
   },
   {
     inputs: [
-      { internalType: 'address', name: 'user', type: 'address' },
-      { internalType: 'address', name: 'newParent', type: 'address' },
+      { internalType: 'address', name: 'user',        type: 'address' },
+      { internalType: 'address', name: 'newParent',   type: 'address' },
       { internalType: 'address', name: 'newLeftAddr', type: 'address' },
-      { internalType: 'address', name: 'newRightAddr', type: 'address' },
+      { internalType: 'address', name: 'newRightAddr',type: 'address' },
+      { internalType: 'uint256', name: 'newVolume',   type: 'uint256' },
     ],
     name: 'updateBinaryData',
     outputs: [],
     stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'binaryVolume',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
     type: 'function',
   },
   // Admin config setters
@@ -334,18 +342,18 @@ export function useAeosGenealogy() {
   }
 
   // WRITE: Update Binary Data
-  const updateBinaryData = async (user, newParent, newLeft, newRight) => {
+  const updateBinaryData = async (user, newParent, newLeft, newRight, newVolume = 0n) => {
     if (!walletClient) throw new Error('Wallet not connected')
     if (!address) throw new Error('No account connected')
 
     try {
-      console.log('[Genealogy] Updating binary:', user)
+      console.log('[Genealogy] Updating binary:', user, 'volume:', newVolume.toString())
       const tx = await walletClient.writeContract({
         account: address,
         address: CONTRACTS.genealogy,
         abi: GENEALOGY_ABI,
         functionName: 'updateBinaryData',
-        args: [user, newParent, newLeft, newRight],
+        args: [user, newParent, newLeft, newRight, newVolume],
       })
       console.log('[Genealogy] Update binary TX:', tx)
       return tx

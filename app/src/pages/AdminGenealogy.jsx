@@ -33,6 +33,7 @@ export default function AdminGenealogy() {
   const [binParent, setBinParent] = useState('')
   const [binLeft, setBinLeft] = useState('')
   const [binRight, setBinRight] = useState('')
+  const [binVolume, setBinVolume] = useState('')
   const [binLoading, setBinLoading] = useState(false)
   const [binError, setBinError] = useState('')
   const [binSuccess, setBinSuccess] = useState('')
@@ -199,8 +200,9 @@ export default function AdminGenealogy() {
       const tx = await genealogy.updateBinaryData(
         binUser,
         binParent || '0x0000000000000000000000000000000000000000',
-        binLeft || '0x0000000000000000000000000000000000000000',
-        binRight || '0x0000000000000000000000000000000000000000'
+        binLeft   || '0x0000000000000000000000000000000000000000',
+        binRight  || '0x0000000000000000000000000000000000000000',
+        binVolume ? BigInt(binVolume) : 0n
       )
       console.log('[UI] Update binary TX:', tx)
 
@@ -210,6 +212,7 @@ export default function AdminGenealogy() {
       }
 
       setBinSuccess(`✅ Binary updated: ${binUser}`)
+      setBinVolume('')
       setBinUser('')
       setBinParent('')
       setBinLeft('')
@@ -552,6 +555,21 @@ export default function AdminGenealogy() {
               onChange={(e) => setBinRight(e.target.value)}
               className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white placeholder-gray-500"
             />
+
+            <label className="block text-gray-300 text-sm font-medium mt-2">
+              Binary Volume — leave empty to keep current value
+            </label>
+            <input
+              type="number"
+              placeholder="e.g. 5000 (leave empty = no change)"
+              value={binVolume}
+              onChange={(e) => setBinVolume(e.target.value)}
+              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white placeholder-gray-500"
+            />
+            <p className="text-xs text-gray-500">
+              Used by the tree traversal to determine the lesser-volume leg.
+              0 = no volume assigned yet.
+            </p>
 
             <button
               onClick={handleUpdateBinary}

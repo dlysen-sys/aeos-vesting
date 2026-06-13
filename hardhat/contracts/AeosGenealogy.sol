@@ -35,6 +35,8 @@ contract AeosGenealogy is AdminOwnable {
     mapping(address => bool) public isUser;
     mapping(address => AffiliateData) public affiliate;
     mapping(address => BinaryData) public binary;
+    mapping(address => uint256) public affiliateVolume;
+    mapping(address => uint256) public binaryVolume;
     mapping(address => uint256) public lastCallBlock;
     mapping(address => uint256) public lastCallTime;
 
@@ -220,12 +222,12 @@ contract AeosGenealogy is AdminOwnable {
             if (!hasLeft) return (current, false);
             if (!hasRight) return (current, true);
 
-            // Both children — descend toward leg with fewer children
-            uint256 leftCount = affiliate[node.leftAddress].children.length;
-            uint256 rightCount = affiliate[node.rightAddress].children.length;
-            current = (leftCount <= rightCount)
-                ? node.leftAddress
-                : node.rightAddress;
+            // Both children — descend toward leg with lesser binary volume
+            uint256 leftVol  = binaryVolume[node.leftAddress];
+            uint256 rightVol = binaryVolume[node.rightAddress];
+            current = _group == false
+                ? (leftVol  <= rightVol  ? node.leftAddress  : node.rightAddress)
+                : (rightVol <= leftVol   ? node.rightAddress : node.leftAddress);
         }
         revert("TREE_TOO_DEEP");
     }
@@ -378,7 +380,8 @@ contract AeosGenealogy is AdminOwnable {
         address user,
         address newParent,
         address newLeftAddr,
-        address newRightAddr
+        address newRightAddr,
+        uint256 newVolume
     ) external onlyAdmin {
         require(isUser[user], "USER_NOT_FOUND");
         if (newParent    != address(0)) require(newParent    != user, "SELF_PARENT");
@@ -526,6 +529,11 @@ contract AeosGenealogy is AdminOwnable {
                 // Update new right child's parent to current user
                 binary[newRightAddr].parent = user;
             }
+        }
+
+        // Update binaryVolume if changed
+        if (newVolume != binaryVolume[user]) {
+            binaryVolume[user] = newVolume;
         }
 
         emit BinaryDataUpdated(user, bin.parent, bin.leftAddress, bin.rightAddress);
