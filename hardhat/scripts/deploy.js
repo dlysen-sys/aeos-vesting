@@ -77,6 +77,16 @@ async function main() {
   console.log(`   ✓ Deployer AEOS Balance: ${hre.ethers.formatEther(aeosBalance)} AEOS`)
   console.log(`   ✓ Deployer Address: ${deployer.address}`)
 
+  // Deploy genealogy contract first (needed for referral system)
+  console.log("\n🏗️ Deploying Genealogy contract...");
+
+  const Genealogy = await hre.ethers.getContractFactory("AeosGenealogy");
+  const genealogyModule = await Genealogy.deploy(deployer.address);
+  await genealogyModule.waitForDeployment();
+  const genealogyAddr = await genealogyModule.getAddress();
+  console.log(`✅ AeosGenealogy deployed to: ${genealogyAddr}`);
+  console.log(`   └─ Root user: ${deployer.address}`);
+
   // Deploy individual vesting modules (factory contract is too large)
   console.log("\n🏗️ Deploying vesting modules...");
 
@@ -86,11 +96,13 @@ async function main() {
   const teamAddr = await teamModule.getAddress();
   console.log(`✅ Team & Founders deployed to: ${teamAddr}`);
 
+  // Deploy Strategic with genealogy address for referral system
   const StrategicVesting = await hre.ethers.getContractFactory("AeosVestingStrategic");
-  const strategicModule = await StrategicVesting.deploy(aeosAddress, usdtAddress);
+  const strategicModule = await StrategicVesting.deploy(aeosAddress, usdtAddress, genealogyAddr);
   await strategicModule.waitForDeployment();
   const strategicAddr = await strategicModule.getAddress();
   console.log(`✅ Strategic Investors deployed to: ${strategicAddr}`);
+  console.log(`   └─ Genealogy integration: ${genealogyAddr}`);
 
   const AdvisorsVesting = await hre.ethers.getContractFactory("AeosVestingAdvisors");
   const advisorsModule = await AdvisorsVesting.deploy(aeosAddress, usdtAddress);
@@ -109,7 +121,8 @@ async function main() {
   const reservesAddr = await reservesModule.getAddress();
   console.log(`✅ Reserves deployed to: ${reservesAddr}`);
 
-  console.log("\n📦 Module Addresses:");
+  console.log("\n📦 Contract Addresses:");
+  console.log(`  Genealogy: ${genealogyAddr}`);
   console.log(`  Team & Founders: ${teamAddr}`);
   console.log(`  Strategic Investors: ${strategicAddr}`);
   console.log(`  Advisors & Partnerships: ${advisorsAddr}`);
@@ -120,6 +133,7 @@ async function main() {
     network,
     timestamp: new Date().toISOString(),
     contracts: {
+      genealogy: genealogyAddr,
       team: teamAddr,
       strategic: strategicAddr,
       advisors: advisorsAddr,
@@ -130,12 +144,18 @@ async function main() {
       usdt: usdtAddress,
     },
     wallets: {
+      deployer: deployer.address,
       treasury: TREASURY_WALLET,
       liquidity: LIQUIDITY_WALLET,
       communityIncentives: COMMUNITY_INCENTIVES_WALLET,
       ecosystem: ECOSYSTEM_WALLET,
       communityGrowth: COMMUNITY_GROWTH_WALLET,
     },
+    configuration: {
+      genealogyRoot: deployer.address,
+      strategicGenealogy: genealogyAddr,
+      notes: "Genealogy enables referral system (10% AEOS bonus). All vesting modules initialized with default parameters."
+    }
   };
 
   const fs = require("fs");
@@ -160,9 +180,24 @@ async function main() {
   console.log(`   ✓ Historical record: ${path.relative(process.cwd(), timestampedFile)}`);
 
   console.log("\n✨ Deployment complete! Next steps:");
-  console.log("   1. Fund the contracts with AEOS tokens");
-  console.log("   2. Verify contracts on BSCScan");
-  console.log("   3. Begin using the vesting system");
+  console.log("   1. REQUIRED: Update frontend config with contract addresses:");
+  console.log(`      - src/config/contracts.js`);
+  console.log(`      - Set: genealogy: '${genealogyAddr}'`);
+  console.log(`      - Set: strategic: '${strategicAddr}'`);
+  console.log("   2. OPTIONAL: Register root user in Genealogy");
+  console.log(`      - Root address: ${deployer.address}`);
+  console.log("   3. Fund the contracts with AEOS tokens:");
+  console.log(`      - Approve & transfer to Strategic: ${strategicAddr}`);
+  console.log(`      - Approve & transfer to Advisors: ${advisorsAddr}`);
+  console.log(`      - Approve & transfer to Team: ${teamAddr}`);
+  console.log("   4. Configure module parameters if needed:");
+  console.log(`      - setTreasuryWallet() on each module`);
+  console.log(`      - setLiquidityContract() on Strategic/Advisors`);
+  console.log("   5. Verify contracts on BSCScan");
+  console.log("   6. Deploy frontend and update config");
+  console.log("\n📊 Deployment Configuration Saved:");
+  console.log(`   📄 Latest: deployments/deployment-latest.json`);
+  console.log(`   📜 History: deployments/deployment-${network}-*.json`);
 }
 
 main().catch((error) => {

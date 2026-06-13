@@ -1,8 +1,40 @@
 # AEOS Vesting System — Project Milestones
 
-**Project Status:** 🟡 In Development (Phase 3/4) + Smart Contract Integration  
+**Project Status:** 🟢 Phase 0 Complete (Genealogy Integration ✅) + Phase 3 (90%)  
 **Last Updated:** 2026-06-12  
-**Next Session Focus:** Wire UI to contracts following 5-step SOP (Step 3: addresses wired)
+**Next Session Focus:** Complete vesting module frontend + test referral system  
+**Session Reference:** [2026-06-12-genealogy.md](2026-06-12-genealogy.md) — Genealogy integration complete
+
+---
+
+## ✅ Phase 0: Genealogy Integration
+**Status:** COMPLETE (2026-06-12)
+
+- [x] AeosGenealogy.sol smart contract
+- [x] Gas optimization with gasleft() checks
+- [x] Admin management system (owner + designated admins)
+- [x] useAeosGenealogy.js hook (read/write functions)
+- [x] AdminGenealogy.jsx UI component (4-tab interface)
+- [x] Frontend routing (/admin/genealogy)
+- [x] Navbar integration
+- [x] Config sync with deployed addresses
+- [x] SOP documentation
+- [x] Deployment automation
+
+**Deployed Addresses (Hardhat localhost):**
+```
+Genealogy:           0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1
+Strategic (integrated): 0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f
+Team:                0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44
+Advisors:            0x4A679253410272dd5232B3Ff7cF5dbB88f295319
+Reserves:            0x7a2088a1bFc9d81c55368AE168C2C02570cB814F
+```
+
+**Key Features:**
+- Dual-tree referral + binary network
+- 10% AEOS bonus to sponsors
+- Per-user gas optimization
+- Admin-managed tree structure
 
 ---
 
@@ -80,7 +112,19 @@
 
 ## Key Accomplishments This Session (2026-06-12)
 
-### 🚀 Major Shipping Work — Security Audit Response
+### 🎉 MAJOR: Genealogy Integration Complete
+- ✅ Deployed AeosGenealogy.sol with gas optimization (gasleft() checks)
+- ✅ Wired genealogy into Strategic module (enables 10% AEOS referral bonus)
+- ✅ Created useAeosGenealogy hook with full ABI (8 functions)
+- ✅ Built AdminGenealogy UI component (4-tab interface: Check User, Manage Admins, Update Affiliate, Update Binary)
+- ✅ Integrated into frontend routing (/admin/genealogy)
+- ✅ Added to admin navbar with pink highlight
+- ✅ Created comprehensive SOP documentation (genealogy-smart-contract-integration.md)
+- ✅ Hardhat node running at localhost:8545 with deployed contracts
+- ✅ React dev server running at localhost:5176 with full genealogy integration
+- **Time:** ~110 minutes (contract + hook + UI + docs)
+
+### 🚀 Remaining Work — Full Vesting Module Integration
 
 **TIER 1 CRITICAL:** All 3 issues FIXED ✅
 - VestingMath: Removed hardcoded periods, added periodLength parameter

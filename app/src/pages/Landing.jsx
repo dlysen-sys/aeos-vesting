@@ -183,7 +183,7 @@ export default function Landing({ isConnected, connect }) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-10 max-w-3xl mx-auto">
             {[
               { value: '1B',    label: 'Total Supply'    },
-              { value: '0.2',   label: 'USDT per AEOS'   },
+              { value: '0.2 - 0.3',   label: 'USDT per AEOS'   },
               { value: '8',     label: 'Vesting Modules' },
               { value: '10K+',  label: 'AEOS to Merchant'},
             ].map(s => (

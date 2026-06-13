@@ -5,12 +5,14 @@ import { CONTRACTS, TOKENS } from '../config/contracts'
 import { formatEther, parseEther } from 'viem'
 import { ERC20_ABI } from '../config/abis'
 import ContractButton from '../components/ContractButton'
-import { AlertCircle, RefreshCw, Upload, Download, BookOpen, Settings, Zap, TrendingUp } from 'lucide-react'
+import AdminGenealogy from './AdminGenealogy'
+import { AlertCircle, RefreshCw, Upload, Download, BookOpen, Settings, Zap, TrendingUp, Users } from 'lucide-react'
 
-export default function Admin({ activeAdminTab = 'deposit', activeContractModule = 'strategic' }) {
+export default function Admin({ activeAdminTab: propActiveAdminTab = 'deposit', activeContractModule = 'strategic' }) {
   const { address } = useAccount()
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
+  const [activeAdminTab, setActiveAdminTab] = useState(propActiveAdminTab)
   const {
     depositStrategicTokens,
     withdrawAEOS: withdrawAEOSHook,
@@ -140,6 +142,65 @@ export default function Admin({ activeAdminTab = 'deposit', activeContractModule
           <span>Admin: Connect your wallet (must be contract owner)</span>
         </div>
       )}
+
+      {/* Tab Navigation */}
+      <div className="flex gap-2 border-b border-gray-700 overflow-x-auto">
+        <button
+          onClick={() => setActiveAdminTab('deposit')}
+          className={`px-4 py-3 font-medium whitespace-nowrap flex items-center gap-2 ${
+            activeAdminTab === 'deposit'
+              ? 'text-yellow-400 border-b-2 border-yellow-400'
+              : 'text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <Upload size={18} />
+          Deposit
+        </button>
+        <button
+          onClick={() => setActiveAdminTab('withdraw')}
+          className={`px-4 py-3 font-medium whitespace-nowrap flex items-center gap-2 ${
+            activeAdminTab === 'withdraw'
+              ? 'text-yellow-400 border-b-2 border-yellow-400'
+              : 'text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <Download size={18} />
+          Withdraw
+        </button>
+        <button
+          onClick={() => setActiveAdminTab('funding')}
+          className={`px-4 py-3 font-medium whitespace-nowrap flex items-center gap-2 ${
+            activeAdminTab === 'funding'
+              ? 'text-yellow-400 border-b-2 border-yellow-400'
+              : 'text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <TrendingUp size={18} />
+          Funding
+        </button>
+        <button
+          onClick={() => setActiveAdminTab('settings')}
+          className={`px-4 py-3 font-medium whitespace-nowrap flex items-center gap-2 ${
+            activeAdminTab === 'settings'
+              ? 'text-yellow-400 border-b-2 border-yellow-400'
+              : 'text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <Settings size={18} />
+          Settings
+        </button>
+        <button
+          onClick={() => setActiveAdminTab('genealogy')}
+          className={`px-4 py-3 font-medium whitespace-nowrap flex items-center gap-2 ${
+            activeAdminTab === 'genealogy'
+              ? 'text-yellow-400 border-b-2 border-yellow-400'
+              : 'text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <Users size={18} />
+          Genealogy
+        </button>
+      </div>
 
       {/* Contract Balance — Always visible */}
       <div className="card-aeos p-6">
@@ -485,6 +546,13 @@ export default function Admin({ activeAdminTab = 'deposit', activeContractModule
           </div>
         </div>
       </div>
+      )}
+
+      {/* Genealogy — Shown when activeAdminTab === 'genealogy' */}
+      {activeAdminTab === 'genealogy' && (
+        <div className="card-aeos p-6">
+          <AdminGenealogy />
+        </div>
       )}
 
       {/* Instructions */}

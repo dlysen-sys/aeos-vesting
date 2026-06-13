@@ -34,6 +34,31 @@ Build a comprehensive, multi-module token vesting system for AEOS (Token CA: `0x
 
 ## 🏗️ Development Phases
 
+### Phase 0: Genealogy Integration ✅ **COMPLETE**
+**Status:** Smart contract deployed, frontend wired, admin UI functional, SOP documented
+
+**Deliverables Completed:**
+- ✅ AeosGenealogy.sol — Dual-tree (referral + binary) contract with gas optimization
+- ✅ Gas buffer checks (gasleft()) with dynamic per-user depth adjustment
+- ✅ Admin management system (owner + designated admins)
+- ✅ useAeosGenealogy.js hook — Read/write functions with error handling
+- ✅ AdminGenealogy.jsx — 4-tab UI (Check User, Manage Admins, Update Affiliate, Update Binary)
+- ✅ Frontend routing (/admin/genealogy) + navbar integration
+- ✅ Deployment automation (deploy.js)
+- ✅ SOP documentation (genealogy-smart-contract-integration.md)
+
+**Deployed Addresses (Hardhat localhost):**
+- Genealogy: 0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1
+- Strategic (integrated): 0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f
+
+**How to Test:**
+1. Keep Hardhat node running: `npx hardhat node`
+2. Deploy contracts: `npx hardhat run scripts/deploy.js --network localhost`
+3. Start React app: `npm run dev` (runs at http://localhost:5176)
+4. Connect wallet → Admin → Genealogy
+
+---
+
 ### Phase 1: Smart Contract Development
 **Invoke:** `/Users/admin/Projects/ExecutiveAssistant/.claude/skills/blockchain-skills-external/skills/solidity/SKILL.md`
 
@@ -396,7 +421,8 @@ const handleRelease = async () => {
 
 ## 🎯 Success Criteria
 
-✅ **Phase 1:** All 8 vesting modules fully implemented with owner/public access controls  
-✅ **Phase 2:** Tests passing, testnet deployment verified  
-✅ **Phase 3:** Frontend integrates with deployed contract, all buttons functional with error handling  
-✅ **Phase 4:** Live on GitHub Pages + BSC Mainnet with verified contract
+✅ **Phase 0:** Genealogy integration complete (contract + frontend + admin UI)  
+⏳ **Phase 1:** All 8 vesting modules fully implemented with owner/public access controls  
+⏳ **Phase 2:** Tests passing, testnet deployment verified  
+⏳ **Phase 3:** Frontend integrates with deployed contract, all buttons functional with error handling  
+⏳ **Phase 4:** Live on GitHub Pages + BSC Mainnet with verified contract
