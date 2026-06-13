@@ -12,13 +12,12 @@ export const ACTIVE_CHAIN_ID = 31337; // Change this to switch networks
  */
 const NETWORK_ADDRESSES = {
   31337: {
-    // Hardhat Local (from deployments/deployment-latest.json - Updated: 2026-06-13)
-    // ⚠️ TESTING ONLY: With AdminOwnable (onlyAdmin on all contracts), genealogy, tiered pricing
-    genealogy: '0xB0f05d25e41FbC2b52013099ED9616f1206Ae21B',
-    team:      '0x5FeaeBfB4439F3516c74939A9D04e95AFE82C4ae',
-    strategic: '0x976fcd02f7C4773dd89C309fBF55D5923B4c98a1',
-    advisors:  '0x19cEcCd6942ad38562Ee10bAfd44776ceB67e923',
-    reserves:  '0xD42912755319665397FF090fBB63B1a31aE87Cee',
+    // Hardhat Local — 2026-06-13 (AdminOwnable on all + import order cleanup)
+    genealogy: '0xB377a2EeD7566Ac9fCb0BA673604F9BF875e2Bab',
+    team:      '0x66F625B8c4c635af8b74ECe2d7eD0D58b4af3C3d',
+    strategic: '0x8bCe54ff8aB45CB075b044AE117b8fD91F9351aB',
+    advisors:  '0x74Cf9087AD26D541930BaC724B7ab21bA8F00a27',
+    reserves:  '0xefAB0Beb0A557E452b398035eA964948c750b2Fd',
   },
   97: {
     // BSC Testnet (update after deployment)
@@ -43,8 +42,8 @@ const NETWORK_ADDRESSES = {
  */
 const NETWORK_TOKENS = {
   31337: {
-    aeos: '0x5fc748f1FEb28d7b76fa1c6B07D8ba2d5535177c',  // AEOS COIN (Mock - Hardhat deployment 2026-06-13)
-    usdt: '0x3347B4d90ebe72BeFb30444C9966B2B990aE9FcB',  // USDT Tether (Mock - Hardhat deployment 2026-06-13)
+    aeos: '0x4bf010f1b9beDA5450a8dD702ED602A104ff65EE',  // AEOS COIN (Mock - Hardhat 2026-06-13 latest)
+    usdt: '0xfcDB4564c18A9134002b9771816092C9693622e3',  // USDT Tether (Mock - Hardhat 2026-06-13 latest)
   },
   97: {
     aeos: '0x89417b107ad0ef0ce0da82c5d6fd6c81f6e0d25a',
