@@ -6,7 +6,8 @@ import { formatEther, parseEther } from 'viem'
 import { ERC20_ABI } from '../config/abis'
 import { formatSeconds } from '../utils/timeConversion'
 import ContractButton from '../components/ContractButton'
-import { AlertCircle, RefreshCw, Upload, Download, TrendingUp, Settings, Zap, UserPlus, Edit3 } from 'lucide-react'
+import { AlertCircle, RefreshCw, Upload, Download, TrendingUp, Settings, Zap, UserPlus, Edit3, Shield } from 'lucide-react'
+import ManageAdmins from '../components/ManageAdmins'
 
 export default function AdminStrategic() {
   const { address } = useAccount()
@@ -100,6 +101,7 @@ export default function AdminStrategic() {
     { id: 'funding',  label: 'Funding Status',   icon: TrendingUp},
     { id: 'settings', label: 'Settings',         icon: Settings  },
     { id: 'manage',   label: 'Manage Vestings',  icon: UserPlus  },
+    { id: 'admins',   label: 'Admins',           icon: Shield    },
   ]
 
   const checkBalance = async () => {
@@ -1285,6 +1287,14 @@ export default function AdminStrategic() {
               )}
 
             </div>
+          )}
+
+          {activeTab === 'admins' && (
+            <ManageAdmins
+              contractAddress={CONTRACTS.strategic}
+              accentColor="#10B981"
+              contractName="Strategic Investors"
+            />
           )}
 
         </div>
