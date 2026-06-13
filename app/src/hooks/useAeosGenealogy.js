@@ -24,9 +24,10 @@ const GENEALOGY_ABI = [
     inputs: [{ internalType: 'address', name: 'user', type: 'address' }],
     name: 'getBinary',
     outputs: [
-      { internalType: 'address', name: 'parent', type: 'address' },
-      { internalType: 'address', name: 'leftAddr', type: 'address' },
+      { internalType: 'address', name: 'parent',   type: 'address' },
+      { internalType: 'address', name: 'leftAddr',  type: 'address' },
       { internalType: 'address', name: 'rightAddr', type: 'address' },
+      { internalType: 'uint256', name: 'volume',    type: 'uint256' },
     ],
     stateMutability: 'view',
     type: 'function',
@@ -233,7 +234,7 @@ export function useAeosGenealogy() {
         args: [userAddress],
       })
       console.log('[Genealogy] Binary for', userAddress, ':', result)
-      return { parent: result[0], leftAddr: result[1], rightAddr: result[2] }
+      return { parent: result[0], leftAddr: result[1], rightAddr: result[2], volume: result[3] }
     } catch (err) {
       console.error('[Genealogy] Error getting binary:', err)
       throw err

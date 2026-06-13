@@ -395,6 +395,14 @@ export default function AdminGenealogy() {
                       : userInfo.binary?.rightAddr || 'N/A'}
                   </span>
                 </p>
+                <p>
+                  <span className="text-gray-400">Binary Volume:</span>
+                  <span className="text-cyan-300 ml-2 font-mono text-xs">
+                    {userInfo.binary?.volume !== undefined
+                      ? Number(userInfo.binary.volume).toLocaleString()
+                      : 'N/A'}
+                  </span>
+                </p>
               </div>
             </div>
           )}

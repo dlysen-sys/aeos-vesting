@@ -282,9 +282,9 @@ contract AeosGenealogy is AdminOwnable {
      */
     function getBinary(
         address user
-    ) external view returns (address parent, address leftAddr, address rightAddr) {
+    ) external view returns (address parent, address leftAddr, address rightAddr, uint256 volume) {
         BinaryData storage b = binary[user];
-        return (b.parent, b.leftAddress, b.rightAddress);
+        return (b.parent, b.leftAddress, b.rightAddress, binaryVolume[user]);
     }
 
     /**
