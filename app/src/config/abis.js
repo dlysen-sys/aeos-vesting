@@ -176,6 +176,42 @@ export const AEOS_VESTING_STRATEGIC_ABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+  // Owner Vesting Management
+  {
+    inputs: [
+      { internalType: 'address', name: 'user',      type: 'address' },
+      { internalType: 'uint256', name: 'amount',    type: 'uint256' },
+      { internalType: 'uint256', name: 'timestamp', type: 'uint256' },
+    ],
+    name: 'addStrategicVesting',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'user',  type: 'address' },
+      { internalType: 'uint256', name: 'index', type: 'uint256' },
+      {
+        internalType: 'tuple',
+        name: 'u',
+        type: 'tuple',
+        components: [
+          { internalType: 'uint256', name: 'amount',       type: 'uint256' },
+          { internalType: 'uint256', name: 'released',     type: 'uint256' },
+          { internalType: 'uint256', name: 'purchaseTime', type: 'uint256' },
+          { internalType: 'uint256', name: 'releasedTime', type: 'uint256' },
+          { internalType: 'uint256', name: 'cliffEnd',     type: 'uint256' },
+          { internalType: 'uint256', name: 'vestingEnd',   type: 'uint256' },
+          { internalType: 'bool',    name: 'isCompleted',  type: 'bool'    },
+        ],
+      },
+    ],
+    name: 'updateStrategicVesting',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
   // Funding Monitoring Functions (Phase 3)
   {
     inputs: [],

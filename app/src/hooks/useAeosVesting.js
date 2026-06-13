@@ -155,6 +155,38 @@ export function useAeosVesting() {
     }
   }
 
+  const addStrategicVesting = {
+    writeAsync: async (config) => {
+      if (!walletClient) throw new Error('Wallet not connected')
+      console.log('addStrategicVesting called with:', config)
+      const hash = await walletClient.writeContract({
+        address: CONTRACTS.strategic,
+        abi: AEOS_VESTING_STRATEGIC_ABI,
+        functionName: 'addStrategicVesting',
+        args: config.args,
+        gas: 300000n,
+      })
+      console.log('addStrategicVesting TX hash:', hash)
+      return hash
+    },
+  }
+
+  const updateStrategicVesting = {
+    writeAsync: async (config) => {
+      if (!walletClient) throw new Error('Wallet not connected')
+      console.log('updateStrategicVesting called with:', config)
+      const hash = await walletClient.writeContract({
+        address: CONTRACTS.strategic,
+        abi: AEOS_VESTING_STRATEGIC_ABI,
+        functionName: 'updateStrategicVesting',
+        args: config.args,
+        gas: 300000n,
+      })
+      console.log('updateStrategicVesting TX hash:', hash)
+      return hash
+    },
+  }
+
   // ───── ADVISORS ─────
 
   const buyAdvisor = useWriteContract({
@@ -560,6 +592,8 @@ export function useAeosVesting() {
     releaseStrategic,
     getStrategicClaimable,
     getStrategicInvestmentCount,
+    addStrategicVesting,
+    updateStrategicVesting,
     // Advisors
     buyAdvisor,
     releaseAdvisor,

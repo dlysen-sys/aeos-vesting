@@ -6,13 +6,15 @@ import { formatEther, parseEther } from 'viem'
 import { ERC20_ABI } from '../config/abis'
 import { formatSeconds } from '../utils/timeConversion'
 import ContractButton from '../components/ContractButton'
-import { AlertCircle, RefreshCw, Upload, Download, TrendingUp, Settings, Zap } from 'lucide-react'
+import { AlertCircle, RefreshCw, Upload, Download, TrendingUp, Settings, Zap, UserPlus, Edit3 } from 'lucide-react'
 
 export default function AdminStrategic() {
   const { address } = useAccount()
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
   const {
+    addStrategicVesting,
+    updateStrategicVesting,
     depositStrategicTokens,
     withdrawAEOS: withdrawAEOSHook,
     withdrawUSDT: withdrawUSDTHook,
@@ -79,11 +81,25 @@ export default function AdminStrategic() {
   const [tier3Price, setTier3Price] = useState('0.24')
   const [tier4Price, setTier4Price] = useState('0.20')
 
+  // Manage Vestings tab state
+  const [addUser, setAddUser]           = useState('')
+  const [addAmount, setAddAmount]       = useState('')
+  const [addTimestamp, setAddTimestamp] = useState('')
+  const [editUser, setEditUser]         = useState('')
+  const [editIndex, setEditIndex]       = useState('')
+  const [editFields, setEditFields]     = useState({
+    amount: '', released: '', purchaseTime: '',
+    releasedTime: '', cliffEnd: '', vestingEnd: '', isCompleted: false,
+  })
+  const [manageTab, setManageTab]       = useState('add')
+  const [manageMsg, setManageMsg]       = useState({ type: '', text: '' })
+
   const ADMIN_TABS = [
-    { id: 'deposit', label: 'Deposit AEOS', icon: Upload },
-    { id: 'withdraw', label: 'Withdraw Tokens', icon: Download },
-    { id: 'funding', label: 'Funding Status', icon: TrendingUp },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'deposit',  label: 'Deposit AEOS',     icon: Upload    },
+    { id: 'withdraw', label: 'Withdraw Tokens',  icon: Download  },
+    { id: 'funding',  label: 'Funding Status',   icon: TrendingUp},
+    { id: 'settings', label: 'Settings',         icon: Settings  },
+    { id: 'manage',   label: 'Manage Vestings',  icon: UserPlus  },
   ]
 
   const checkBalance = async () => {
@@ -1081,6 +1097,196 @@ export default function AdminStrategic() {
               </div>
             </div>
           )}
+          {/* ── MANAGE VESTINGS TAB ─────────────────────────────── */}
+          {activeTab === 'manage' && (
+            <div className="space-y-6">
+
+              {/* Sub-tab switcher */}
+              <div className="flex gap-2">
+                {[{ id: 'add', label: 'Add Vesting', icon: UserPlus }, { id: 'edit', label: 'Edit Vesting', icon: Edit3 }].map(t => (
+                  <button key={t.id} onClick={() => { setManageTab(t.id); setManageMsg({ type: '', text: '' }) }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                    style={{
+                      backgroundColor: manageTab === t.id ? 'var(--primary)' : 'var(--muted)',
+                      color: manageTab === t.id ? '#000' : 'var(--foreground)',
+                    }}>
+                    <t.icon size={14} />{t.label}
+                  </button>
+                ))}
+              </div>
+
+              {manageMsg.text && (
+                <div className="p-3 rounded-lg text-sm"
+                  style={{ backgroundColor: manageMsg.type === 'error' ? '#EF444420' : '#10B98120',
+                           color: manageMsg.type === 'error' ? '#EF4444' : '#10B981' }}>
+                  {manageMsg.text}
+                </div>
+              )}
+
+              {/* ── ADD ── */}
+              {manageTab === 'add' && (
+                <div className="space-y-4">
+                  <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                    Records a vesting position for a user without any USDT transfer, liquidity routing,
+                    or referral bonus. Use for off-chain purchases and manual allocations.
+                  </p>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted-foreground)' }}>
+                        Beneficiary Address
+                      </label>
+                      <input className="w-full p-3 rounded-lg border text-sm font-mono"
+                        style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                        placeholder="0x..."
+                        value={addUser} onChange={e => setAddUser(e.target.value)} />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted-foreground)' }}>
+                        AEOS Amount
+                      </label>
+                      <input className="w-full p-3 rounded-lg border text-sm"
+                        style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                        type="number" placeholder="e.g. 50000"
+                        value={addAmount} onChange={e => setAddAmount(e.target.value)} />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted-foreground)' }}>
+                        Purchase Timestamp — cliff and vesting end are calculated from this date
+                      </label>
+                      <input className="w-full p-3 rounded-lg border text-sm"
+                        style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                        type="datetime-local"
+                        value={addTimestamp} onChange={e => setAddTimestamp(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <ContractButton
+                    label={loading ? 'Processing...' : 'Add Vesting Record'}
+                    onClick={async () => {
+                      setManageMsg({ type: '', text: '' })
+                      if (!addUser || !addAmount || !addTimestamp) {
+                        return setManageMsg({ type: 'error', text: 'All fields are required.' })
+                      }
+                      try {
+                        setLoading(true)
+                        const amountWei = parseEther(addAmount)
+                        const ts = BigInt(Math.floor(new Date(addTimestamp).getTime() / 1000))
+                        const hash = await addStrategicVesting.writeAsync({ args: [addUser, amountWei, ts] })
+                        setManageMsg({ type: 'success', text: `Vesting added. TX: ${hash}` })
+                        setAddUser(''); setAddAmount(''); setAddTimestamp('')
+                      } catch (e) {
+                        console.error('addStrategicVesting error:', e)
+                        setManageMsg({ type: 'error', text: e.shortMessage || e.message })
+                      } finally { setLoading(false) }
+                    }}
+                    disabled={loading}
+                    variant="primary"
+                    fullWidth
+                  />
+                </div>
+              )}
+
+              {/* ── EDIT ── */}
+              {manageTab === 'edit' && (
+                <div className="space-y-4">
+                  <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                    Edit every field of an existing Investment record. Global totals (sold, allocated,
+                    claimable) are reconciled automatically.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted-foreground)' }}>
+                        Investor Address
+                      </label>
+                      <input className="w-full p-3 rounded-lg border text-sm font-mono col-span-2"
+                        style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                        placeholder="0x..."
+                        value={editUser} onChange={e => setEditUser(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted-foreground)' }}>
+                        Investment Index
+                      </label>
+                      <input className="w-full p-3 rounded-lg border text-sm"
+                        style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                        type="number" placeholder="0"
+                        value={editIndex} onChange={e => setEditIndex(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { key: 'amount',       label: 'Amount (AEOS)',       placeholder: 'e.g. 50000',     isDate: false },
+                      { key: 'released',     label: 'Released (AEOS)',     placeholder: 'e.g. 2500',      isDate: false },
+                      { key: 'purchaseTime', label: 'Purchase Timestamp',  placeholder: '',               isDate: true  },
+                      { key: 'releasedTime', label: 'Last Release Timestamp', placeholder: '',            isDate: true  },
+                      { key: 'cliffEnd',     label: 'Cliff End Timestamp', placeholder: '',               isDate: true  },
+                      { key: 'vestingEnd',   label: 'Vesting End Timestamp', placeholder: '',             isDate: true  },
+                    ].map(f => (
+                      <div key={f.key}>
+                        <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted-foreground)' }}>
+                          {f.label}
+                        </label>
+                        <input className="w-full p-3 rounded-lg border text-sm"
+                          style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                          type={f.isDate ? 'datetime-local' : 'number'}
+                          placeholder={f.placeholder}
+                          value={editFields[f.key]}
+                          onChange={e => setEditFields(prev => ({ ...prev, [f.key]: e.target.value }))} />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: 'var(--muted)' }}>
+                    <input type="checkbox" id="isCompleted"
+                      checked={editFields.isCompleted}
+                      onChange={e => setEditFields(prev => ({ ...prev, isCompleted: e.target.checked }))} />
+                    <label htmlFor="isCompleted" className="text-sm">Mark as Completed</label>
+                  </div>
+
+                  <ContractButton
+                    label={loading ? 'Processing...' : 'Update Vesting Record'}
+                    onClick={async () => {
+                      setManageMsg({ type: '', text: '' })
+                      const { amount, released, purchaseTime, releasedTime, cliffEnd, vestingEnd, isCompleted } = editFields
+                      if (!editUser || editIndex === '' || !amount || !purchaseTime || !cliffEnd || !vestingEnd) {
+                        return setManageMsg({ type: 'error', text: 'Address, index, amount, and all timestamps are required.' })
+                      }
+                      const toTs = v => BigInt(Math.floor(new Date(v).getTime() / 1000))
+                      try {
+                        setLoading(true)
+                        const updateStruct = [
+                          parseEther(amount),
+                          parseEther(released || '0'),
+                          toTs(purchaseTime),
+                          toTs(releasedTime || purchaseTime),
+                          toTs(cliffEnd),
+                          toTs(vestingEnd),
+                          isCompleted,
+                        ]
+                        const hash = await updateStrategicVesting.writeAsync({
+                          args: [editUser, BigInt(editIndex), updateStruct],
+                        })
+                        setManageMsg({ type: 'success', text: `Vesting updated. TX: ${hash}` })
+                      } catch (e) {
+                        console.error('updateStrategicVesting error:', e)
+                        setManageMsg({ type: 'error', text: e.shortMessage || e.message })
+                      } finally { setLoading(false) }
+                    }}
+                    disabled={loading}
+                    variant="primary"
+                    fullWidth
+                  />
+                </div>
+              )}
+
+            </div>
+          )}
+
         </div>
       </div>
     </div>

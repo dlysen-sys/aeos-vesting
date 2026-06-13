@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IAEOS.sol";
 import "./interfaces/IUSDT.sol";
 import "./interfaces/ILiquidity.sol";
+import "./interfaces/IAeosGenealogy.sol";
 import "./libraries/VestingMath.sol";
 
 /**
@@ -32,6 +33,18 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
     IAEOS public aeosToken;
     IUSDT public usdtToken;
     ILiquidity public liquidity;
+    IAeosGenealogy public genealogy; // Genealogy contract for referral tracking
+
+    // Struct for updateStrategicVesting to avoid EVM stack-too-deep
+    struct InvestmentUpdate {
+        uint256 amount;
+        uint256 released;
+        uint256 purchaseTime;
+        uint256 releasedTime;
+        uint256 cliffEnd;
+        uint256 vestingEnd;
+        bool    isCompleted;
+    }
 
     // Struct
     struct Investment {
@@ -87,6 +100,11 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
     // Wallets
     address public treasuryWallet;
 
+    // ==================== REFERRAL REWARDS ====================
+    uint256 public constant REFERRAL_BONUS_BPS = 1000; // 10% referral bonus (1000 bps = 10%)
+    mapping(address => uint256) public referralRewards; // Referral AEOS rewards per user
+    uint256 public totalReferralRewarded; // Track total referral rewards distributed
+
     // ==================== TIERED PRICING (OWNER CONFIGURABLE) ====================
     // STRICT TYPE DISCIPLINE: All uint256 amounts are in wei (18 decimals)
     // NO conversions inside contract - frontend handles all conversions
@@ -127,14 +145,22 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
         uint256 newVestingMonths,
         uint256 newWithdrawalPeriod
     );
+    event ReferralRewardCredited(address indexed sponsor, address indexed referrer, uint256 amount);
+    event ReferralRewardsClaimed(address indexed user, uint256 amount);
+    event ReferralRewardsUpdatedByOwner(address indexed user, uint256 newAmount);
+    event StrategicVestingAdded(address indexed user, uint256 amount, uint256 purchaseTime, uint256 cliffEnd, uint256 vestingEnd);
+    event StrategicVestingUpdated(address indexed user, uint256 index, uint256 amount, uint256 released, uint256 cliffEnd, uint256 vestingEnd, bool isCompleted);
 
     // ==================== CONSTRUCTOR ====================
 
-    constructor(address _aeosToken, address _usdtToken)  {
+    constructor(address _aeosToken, address _usdtToken, address _genealogy)  {
         require(_aeosToken != address(0), "Invalid AEOS token");
         require(_usdtToken != address(0), "Invalid USDT token");
         aeosToken = IAEOS(_aeosToken);
         usdtToken = IUSDT(_usdtToken);
+        if (_genealogy != address(0)) {
+            genealogy = IAeosGenealogy(_genealogy);
+        }
         treasuryWallet = msg.sender; // Default to deployer, can be updated via setTreasuryWallet()
     }
 
@@ -225,6 +251,21 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
         uint256 cliffEnd = block.timestamp + cliffPeriodSeconds;
         // TESTING: Use vestingEndSeconds directly | PRODUCTION: Change to (totalVestingMonths * 30 days)
         uint256 vestingEnd = block.timestamp + vestingEndSeconds;
+
+        // ==================== REFERRAL BONUS LOGIC ====================
+        // Check if user is registered in genealogy and has a sponsor
+        if (address(genealogy) != address(0)) {
+            (address sponsor, ) = genealogy.getAffiliate(msg.sender);
+            if (sponsor != address(0)) {
+                // Calculate 10% referral bonus
+                uint256 referralBonus = (aeosAmount * REFERRAL_BONUS_BPS) / BPS;
+                if (referralBonus > 0) {
+                    referralRewards[sponsor] += referralBonus;
+                    totalReferralRewarded += referralBonus;
+                    emit ReferralRewardCredited(sponsor, msg.sender, referralBonus);
+                }
+            }
+        }
 
         investments[msg.sender].push(Investment({
             amount: aeosAmount,
@@ -353,6 +394,22 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
         return totalToRelease;
     }
 
+    /**
+     * @notice Claim accumulated referral rewards (non-vested, immediate payout)
+     * @dev Can only be called if user has referral rewards accumulated
+     */
+    function claimReferralRewards() external nonReentrant {
+        uint256 rewards = referralRewards[msg.sender];
+        require(rewards > 0, "No referral rewards to claim");
+
+        // Clear referral rewards
+        referralRewards[msg.sender] = 0;
+
+        // Transfer AEOS directly (not subject to vesting, immediate payout)
+        aeosToken.safeTransfer(msg.sender, rewards);
+        emit ReferralRewardsClaimed(msg.sender, rewards);
+    }
+
     // ==================== VIEW FUNCTIONS (Getters) ====================
 
     /**
@@ -462,6 +519,13 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
         }
 
         return totalClaimable;
+    }
+
+    /**
+     * @dev Get referral rewards balance for a user
+     */
+    function getReferralRewardsBalance(address user) external view returns (uint256) {
+        return referralRewards[user];
     }
 
     /**
@@ -726,6 +790,14 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
     }
 
     /**
+     * @dev Set genealogy contract for referral tracking (owner only)
+     * Can be set to address(0) to disable referral tracking
+     */
+    function setAeosGenealogy(address _genealogyAddress) external onlyOwner {
+        genealogy = _genealogyAddress != address(0) ? IAeosGenealogy(_genealogyAddress) : IAeosGenealogy(address(0));
+    }
+
+    /**
      * @dev Withdraw collected USDT to treasury (owner only)
      */
     function withdrawUsdt(uint256 amount) external onlyOwner nonReentrant {
@@ -899,5 +971,164 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
         require(to != address(0), "Invalid recipient address");
         require(amount > 0, "Amount must be > 0");
         usdtToken.safeTransfer(to, amount);
+    }
+
+    // ==================== OWNER VESTING MANAGEMENT ====================
+
+    /**
+     * @notice Manually record a strategic vesting position for a user (owner only).
+     * @dev    No USDT transfer, no liquidity routing, no referral bonus.
+     *         Use for off-chain purchases, migrations, or manual allocations.
+     *         cliffEnd and vestingEnd are computed from `timestamp` using the current
+     *         cliffPeriodSeconds and vestingEndSeconds configuration at the time of the call.
+     * @param user      The beneficiary wallet address
+     * @param amount    AEOS amount in wei (18 decimals)
+     * @param timestamp The purchase timestamp to anchor the cliff and vesting schedule
+     */
+    function addStrategicVesting(
+        address user,
+        uint256 amount,
+        uint256 timestamp
+    ) external onlyOwner {
+        require(user != address(0), "ZERO_ADDRESS");
+        require(amount > 0, "ZERO_AMOUNT");
+        require(timestamp > 0 && timestamp <= block.timestamp, "INVALID_TIMESTAMP");
+        require(totalSold + amount <= ALLOCATION, "EXCEEDS_ALLOCATION");
+
+        uint256 cliffEnd   = timestamp + cliffPeriodSeconds;
+        uint256 vestingEnd = timestamp + vestingEndSeconds;
+
+        investments[user].push(Investment({
+            amount:       amount,
+            released:     0,
+            purchaseTime: timestamp,
+            releasedTime: timestamp,
+            cliffEnd:     cliffEnd,
+            vestingEnd:   vestingEnd,
+            isCompleted:  false
+        }));
+
+        totalSold          += amount;
+        totalAllocated     += amount;
+        totalAeosClaimable += amount;
+
+        emit StrategicVestingAdded(user, amount, timestamp, cliffEnd, vestingEnd);
+        emit FundingRequirementUpdated(totalSold, totalDeposited, getRemainingFundingGap());
+    }
+
+    /**
+     * @notice Edit every field of an existing Investment record (owner only).
+     * @dev    Recalculates totalSold, totalAllocated, and totalAeosClaimable to stay consistent.
+     *         Use for corrections or migrations. Parameters are packed into InvestmentUpdate
+     *         struct to avoid EVM stack-too-deep errors.
+     * @param user  The investment owner
+     * @param index Index into investments[user]
+     * @param u     InvestmentUpdate struct containing all updated field values
+     */
+    function updateStrategicVesting(
+        address user,
+        uint256 index,
+        InvestmentUpdate calldata u
+    ) external onlyOwner {
+        require(user != address(0), "ZERO_ADDRESS");
+        require(index < investments[user].length, "INDEX_OUT_OF_BOUNDS");
+        require(u.released <= u.amount, "RELEASED_EXCEEDS_AMOUNT");
+        require(u.cliffEnd <= u.vestingEnd, "CLIFF_AFTER_VESTING_END");
+
+        Investment storage inv = investments[user][index];
+
+        // ── Reconcile global tracking ─────────────────────────────────
+        uint256 oldUnreleased = inv.amount > inv.released ? inv.amount - inv.released : 0;
+        uint256 newUnreleased = u.amount   > u.released   ? u.amount   - u.released   : 0;
+
+        if (u.amount > inv.amount) {
+            uint256 delta = u.amount - inv.amount;
+            require(totalSold + delta <= ALLOCATION, "EXCEEDS_ALLOCATION");
+            totalSold += delta;
+        } else if (u.amount < inv.amount) {
+            totalSold -= inv.amount - u.amount;
+        }
+
+        if (newUnreleased > oldUnreleased) {
+            uint256 delta = newUnreleased - oldUnreleased;
+            totalAllocated     += delta;
+            totalAeosClaimable += delta;
+        } else if (newUnreleased < oldUnreleased) {
+            uint256 delta = oldUnreleased - newUnreleased;
+            totalAllocated     = totalAllocated     > delta ? totalAllocated     - delta : 0;
+            totalAeosClaimable = totalAeosClaimable > delta ? totalAeosClaimable - delta : 0;
+        }
+
+        // ── Write updated fields ──────────────────────────────────────
+        inv.amount       = u.amount;
+        inv.released     = u.released;
+        inv.purchaseTime = u.purchaseTime;
+        inv.releasedTime = u.releasedTime;
+        inv.cliffEnd     = u.cliffEnd;
+        inv.vestingEnd   = u.vestingEnd;
+        inv.isCompleted  = u.isCompleted;
+
+        emit StrategicVestingUpdated(user, index, u.amount, u.released, u.cliffEnd, u.vestingEnd, u.isCompleted);
+        emit FundingRequirementUpdated(totalSold, totalDeposited, getRemainingFundingGap());
+    }
+
+    // ==================== REFERRAL REWARDS — OWNER FUNCTIONS ====================
+
+    /**
+     * @notice Update referral rewards for a user (owner only, for migration/recovery)
+     * @dev Sets the exact amount of referral rewards for a user
+     * Use this to manually adjust rewards if genealogy was not properly tracked
+     * @param user The user to update
+     * @param newAmount The new referral reward amount
+     */
+    function updateReferralReward(address user, uint256 newAmount) external onlyOwner {
+        require(user != address(0), "Invalid user address");
+        uint256 oldAmount = referralRewards[user];
+        referralRewards[user] = newAmount;
+
+        // Adjust total tracked rewards
+        if (newAmount > oldAmount) {
+            totalReferralRewarded += (newAmount - oldAmount);
+        } else if (newAmount < oldAmount) {
+            totalReferralRewarded -= (oldAmount - newAmount);
+        }
+
+        emit ReferralRewardsUpdatedByOwner(user, newAmount);
+    }
+
+    /**
+     * @notice Add referral rewards for a user (owner only, for migration/recovery)
+     * @dev Adds to existing referral rewards (doesn't replace)
+     * Use this to manually add rewards if genealogy was not properly tracked
+     * @param user The user to add rewards for
+     * @param additionalAmount The amount to add
+     */
+    function addReferralReward(address user, uint256 additionalAmount) external onlyOwner {
+        require(user != address(0), "Invalid user address");
+        require(additionalAmount > 0, "Amount must be > 0");
+
+        referralRewards[user] += additionalAmount;
+        totalReferralRewarded += additionalAmount;
+
+        emit ReferralRewardsUpdatedByOwner(user, referralRewards[user]);
+    }
+
+    /**
+     * @notice Withdraw referral rewards on behalf of user (owner only, for emergency)
+     * @dev Allows owner to withdraw accumulated referral rewards and send to specified address
+     * @param user The user whose rewards to withdraw
+     * @param recipient The address to receive the rewards
+     */
+    function withdrawReferralRewardsFor(address user, address recipient) external onlyOwner nonReentrant {
+        require(user != address(0), "Invalid user address");
+        require(recipient != address(0), "Invalid recipient address");
+
+        uint256 rewards = referralRewards[user];
+        require(rewards > 0, "No referral rewards to withdraw");
+
+        referralRewards[user] = 0;
+        aeosToken.safeTransfer(recipient, rewards);
+
+        emit ReferralRewardsClaimed(user, rewards);
     }
 }
