@@ -1,13 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./AdminOwnable.sol";
+// External packages
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./interfaces/IAEOS.sol";
-import "./AeosVestingTeam.sol";
-import "./AeosVestingStrategic.sol";
+
+// Local base
+import "./AdminOwnable.sol";
+
+// Module contracts
 import "./AeosVestingAdvisors.sol";
 import "./AeosVestingReserves.sol";
+import "./AeosVestingStrategic.sol";
+import "./AeosVestingTeam.sol";
+
+// Interfaces
+import "./interfaces/IAEOS.sol";
 
 /**
  * @title AeosVesting

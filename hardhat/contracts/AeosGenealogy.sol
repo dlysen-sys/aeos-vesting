@@ -8,6 +8,7 @@ pragma solidity ^0.8.20;
  *         No earnings, no volume tracking, no ranks — pure genealogy
  */
 
+// Local base
 import "./AdminOwnable.sol";
 
 contract AeosGenealogy is AdminOwnable {

@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./AdminOwnable.sol";
+// External packages
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+// Local base
+import "./AdminOwnable.sol";
+
+// Interfaces
 import "./interfaces/IAEOS.sol";
 
 /**

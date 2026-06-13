@@ -1,21 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+// External packages
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+
+// Local base
 import "./AdminOwnable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {
-    ReentrancyGuard
-} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {
-    IERC721Receiver
-} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import "./interfaces/IPancakeV3Pool.sol";
+
+// Interfaces
 import "./interfaces/INonfungiblePositionManager.sol";
+import "./interfaces/IPancakeV3Pool.sol";
 import "./interfaces/ISwapRouter.sol";
-import "./libraries/TickMath.sol";
+
+// Libraries
 import "./libraries/FullMath.sol";
+import "./libraries/TickMath.sol";
 
 contract LIQUIDITY is AdminOwnable, ReentrancyGuard, IERC721Receiver {
     using SafeERC20 for IERC20;
