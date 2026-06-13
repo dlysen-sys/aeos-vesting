@@ -12,15 +12,17 @@ export const ACTIVE_CHAIN_ID = 31337; // Change this to switch networks
  */
 const NETWORK_ADDRESSES = {
   31337: {
-    // Hardhat Local (from deployments/deployment-latest.json - Updated: 2026-06-12)
-    // ⚠️ TESTING ONLY: With deposit/withdraw functions + fast unlocking + tiered pricing + enhanced natspec
-    team: '0x88D1aF96098a928eE278f162c1a84f339652f95b',
-    strategic: '0x7Ce73F8f636C6bD3357A0A8a59e0ab6462C955B0',
-    advisors: '0x87c470437282174b3f8368c7CF1Ac03bcAe57954',
-    reserves: '0x746a48E39dC57Ff14B872B8979E20efE5E5100B1',
+    // Hardhat Local (from deployments/deployment-latest.json - Updated: 2026-06-13)
+    // ⚠️ TESTING ONLY: With AdminOwnable (onlyAdmin on all contracts), genealogy, tiered pricing
+    genealogy: '0xB0f05d25e41FbC2b52013099ED9616f1206Ae21B',
+    team:      '0x5FeaeBfB4439F3516c74939A9D04e95AFE82C4ae',
+    strategic: '0x976fcd02f7C4773dd89C309fBF55D5923B4c98a1',
+    advisors:  '0x19cEcCd6942ad38562Ee10bAfd44776ceB67e923',
+    reserves:  '0xD42912755319665397FF090fBB63B1a31aE87Cee',
   },
   97: {
     // BSC Testnet (update after deployment)
+    genealogy: '0x0000000000000000000000000000000000000000',
     team: '0x0000000000000000000000000000000000000000',
     strategic: '0x0000000000000000000000000000000000000000',
     advisors: '0x0000000000000000000000000000000000000000',
@@ -28,6 +30,7 @@ const NETWORK_ADDRESSES = {
   },
   56: {
     // BSC Mainnet (update after deployment)
+    genealogy: '0x0000000000000000000000000000000000000000',
     team: '0x0000000000000000000000000000000000000000',
     strategic: '0x0000000000000000000000000000000000000000',
     advisors: '0x0000000000000000000000000000000000000000',
@@ -40,8 +43,8 @@ const NETWORK_ADDRESSES = {
  */
 const NETWORK_TOKENS = {
   31337: {
-    aeos: '0x04f1A5b9BD82a5020C49975ceAd160E98d8B77Af',  // AEOS COIN (deployed on Hardhat local - Latest)
-    usdt: '0x05bB67cB592C1753425192bF8f34b95ca8649f09',  // USDT Tether (deployed on Hardhat local - Latest)
+    aeos: '0x5fc748f1FEb28d7b76fa1c6B07D8ba2d5535177c',  // AEOS COIN (Mock - Hardhat deployment 2026-06-13)
+    usdt: '0x3347B4d90ebe72BeFb30444C9966B2B990aE9FcB',  // USDT Tether (Mock - Hardhat deployment 2026-06-13)
   },
   97: {
     aeos: '0x89417b107ad0ef0ce0da82c5d6fd6c81f6e0d25a',

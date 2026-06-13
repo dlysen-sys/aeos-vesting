@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./AdminOwnable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -19,7 +19,7 @@ import "./libraries/VestingMath.sol";
  * - 5% quarterly unlock (20 quarters = 5 years)
  * - Per-investment release (no looping, gas efficient)
  */
-contract AeosVestingStrategic is Ownable, ReentrancyGuard {
+contract AeosVestingStrategic is AdminOwnable, ReentrancyGuard {
     using SafeERC20 for IAEOS;
     using SafeERC20 for IUSDT;
 
@@ -775,7 +775,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
     /**
      * @dev Set treasury wallet (owner only)
      */
-    function setTreasuryWallet(address _newTreasury) external onlyOwner {
+    function setTreasuryWallet(address _newTreasury) external onlyAdmin {
         require(_newTreasury != address(0), "Invalid treasury address");
         treasuryWallet = _newTreasury;
         emit TreasuryWalletUpdated(_newTreasury);
@@ -784,7 +784,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
     /**
      * @dev Set liquidity pool contract for USDT routing (owner only)
      */
-    function setLiquidityContract(address _liquidityAddress) external onlyOwner {
+    function setLiquidityContract(address _liquidityAddress) external onlyAdmin {
         require(_liquidityAddress != address(0), "Invalid liquidity address");
         liquidity = ILiquidity(_liquidityAddress);
     }
@@ -793,14 +793,14 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
      * @dev Set genealogy contract for referral tracking (owner only)
      * Can be set to address(0) to disable referral tracking
      */
-    function setAeosGenealogy(address _genealogyAddress) external onlyOwner {
+    function setAeosGenealogy(address _genealogyAddress) external onlyAdmin {
         genealogy = _genealogyAddress != address(0) ? IAeosGenealogy(_genealogyAddress) : IAeosGenealogy(address(0));
     }
 
     /**
      * @dev Withdraw collected USDT to treasury (owner only)
      */
-    function withdrawUsdt(uint256 amount) external onlyOwner nonReentrant {
+    function withdrawUsdt(uint256 amount) external onlyAdmin nonReentrant {
         require(amount > 0, "Amount must be > 0");
         require(usdtToken.balanceOf(address(this)) >= amount, "Insufficient USDT");
 
@@ -826,7 +826,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
         uint256 newUnlockPercent,
         uint256 newVestingMonths,
         uint256 newWithdrawalPeriod
-    ) external onlyOwner {
+    ) external onlyAdmin {
         // Validate all parameters
         require(newVestingPrice > 0, "Vesting price must be > 0");
         require(newMinInvestment > 0, "Minimum investment must be > 0");
@@ -856,7 +856,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
     /**
      * @dev Set liquidity slippage tolerance (owner only)
      */
-    function setSlippageTolerance(uint256 newSlippageBps) external onlyOwner {
+    function setSlippageTolerance(uint256 newSlippageBps) external onlyAdmin {
         require(newSlippageBps > 0 && newSlippageBps <= BPS, "Slippage must be 1-BPS (0.01%-100%)");
         slippageBps = newSlippageBps;
     }
@@ -865,7 +865,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
      * @dev Set USDT split percentages in basis points (owner only)
      * Example: 8000 bps = 80%, 2000 bps = 20%
      */
-    function setUsdtSplitBps(uint256 newLiquidityBps, uint256 newTreasuryBps) external onlyOwner {
+    function setUsdtSplitBps(uint256 newLiquidityBps, uint256 newTreasuryBps) external onlyAdmin {
         require(newLiquidityBps + newTreasuryBps == BPS, "Basis points must sum to BPS (100%)");
         require(newLiquidityBps > 0 && newTreasuryBps > 0, "Both amounts must be > 0");
         usdtToLiquidityBps = newLiquidityBps;
@@ -880,7 +880,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
      * @param newMaxUSDTWei Max USDT in wei. Example: 100 USDT = 100000000000000000000
      * @param newPriceWei Price per AEOS in wei. Example: 0.30 USDT = 300000000000000000
      */
-    function setTier1Pricing(uint256 newMaxUSDTWei, uint256 newPriceWei) external onlyOwner {
+    function setTier1Pricing(uint256 newMaxUSDTWei, uint256 newPriceWei) external onlyAdmin {
         require(newMaxUSDTWei > 0, "Max USDT must be > 0");
         require(newPriceWei > 0, "Price must be > 0");
         require(newMaxUSDTWei < tier2MaxUSDTWei, "Tier 1 max must be < Tier 2 max");
@@ -894,7 +894,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
      * @param newMaxUSDTWei Max USDT in wei. Example: 500 USDT = 500000000000000000000
      * @param newPriceWei Price per AEOS in wei. Example: 0.28 USDT = 280000000000000000
      */
-    function setTier2Pricing(uint256 newMaxUSDTWei, uint256 newPriceWei) external onlyOwner {
+    function setTier2Pricing(uint256 newMaxUSDTWei, uint256 newPriceWei) external onlyAdmin {
         require(newMaxUSDTWei > 0, "Max USDT must be > 0");
         require(newPriceWei > 0, "Price must be > 0");
         require(newMaxUSDTWei > tier1MaxUSDTWei, "Tier 2 max must be > Tier 1 max");
@@ -909,7 +909,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
      * @param newMaxUSDTWei Max USDT in wei. Example: 2000 USDT = 2000000000000000000000
      * @param newPriceWei Price per AEOS in wei. Example: 0.24 USDT = 240000000000000000
      */
-    function setTier3Pricing(uint256 newMaxUSDTWei, uint256 newPriceWei) external onlyOwner {
+    function setTier3Pricing(uint256 newMaxUSDTWei, uint256 newPriceWei) external onlyAdmin {
         require(newMaxUSDTWei > 0, "Max USDT must be > 0");
         require(newPriceWei > 0, "Price must be > 0");
         require(newMaxUSDTWei > tier2MaxUSDTWei, "Tier 3 max must be > Tier 2 max");
@@ -922,7 +922,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
      * STRICT TYPE: Price in wei (18 decimals)
      * @param newPriceWei Price per AEOS in wei. Example: 0.20 USDT = 200000000000000000
      */
-    function setTier4Price(uint256 newPriceWei) external onlyOwner {
+    function setTier4Price(uint256 newPriceWei) external onlyAdmin {
         require(newPriceWei > 0, "Price must be > 0");
         tier4PriceWei = newPriceWei;
     }
@@ -931,7 +931,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
      * @dev Deposit AEOS tokens to contract for claiming (owner only)
      * Must approve contract before calling
      */
-    function depositStrategicTokens(uint256 amount) external onlyOwner {
+    function depositStrategicTokens(uint256 amount) external onlyAdmin {
         require(amount > 0, "Amount must be > 0");
         bool success = IERC20(address(aeosToken)).transferFrom(msg.sender, address(this), amount);
         require(success, "AEOS transfer failed");
@@ -944,7 +944,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
      * Use this to transfer tokens to any address without adding to MetaMask
      * Checks if contract has enough balance after accounting for allocated tokens
      */
-    function withdrawAEOS(address to, uint256 amount) external onlyOwner nonReentrant {
+    function withdrawAEOS(address to, uint256 amount) external onlyAdmin nonReentrant {
         require(to != address(0), "Invalid recipient address");
         require(amount > 0, "Amount must be > 0");
 
@@ -967,7 +967,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
      * @dev Withdraw USDT tokens to arbitrary address (owner only)
      * Different from withdrawUsdt() which sends to treasuryWallet
      */
-    function withdrawUSDTTo(address to, uint256 amount) external onlyOwner nonReentrant {
+    function withdrawUSDTTo(address to, uint256 amount) external onlyAdmin nonReentrant {
         require(to != address(0), "Invalid recipient address");
         require(amount > 0, "Amount must be > 0");
         usdtToken.safeTransfer(to, amount);
@@ -989,7 +989,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
         address user,
         uint256 amount,
         uint256 timestamp
-    ) external onlyOwner {
+    ) external onlyAdmin {
         require(user != address(0), "ZERO_ADDRESS");
         require(amount > 0, "ZERO_AMOUNT");
         require(timestamp > 0 && timestamp <= block.timestamp, "INVALID_TIMESTAMP");
@@ -1029,7 +1029,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
         address user,
         uint256 index,
         InvestmentUpdate calldata u
-    ) external onlyOwner {
+    ) external onlyAdmin {
         require(user != address(0), "ZERO_ADDRESS");
         require(index < investments[user].length, "INDEX_OUT_OF_BOUNDS");
         require(u.released <= u.amount, "RELEASED_EXCEEDS_AMOUNT");
@@ -1081,7 +1081,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
      * @param user The user to update
      * @param newAmount The new referral reward amount
      */
-    function updateReferralReward(address user, uint256 newAmount) external onlyOwner {
+    function updateReferralReward(address user, uint256 newAmount) external onlyAdmin {
         require(user != address(0), "Invalid user address");
         uint256 oldAmount = referralRewards[user];
         referralRewards[user] = newAmount;
@@ -1103,7 +1103,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
      * @param user The user to add rewards for
      * @param additionalAmount The amount to add
      */
-    function addReferralReward(address user, uint256 additionalAmount) external onlyOwner {
+    function addReferralReward(address user, uint256 additionalAmount) external onlyAdmin {
         require(user != address(0), "Invalid user address");
         require(additionalAmount > 0, "Amount must be > 0");
 
@@ -1119,7 +1119,7 @@ contract AeosVestingStrategic is Ownable, ReentrancyGuard {
      * @param user The user whose rewards to withdraw
      * @param recipient The address to receive the rewards
      */
-    function withdrawReferralRewardsFor(address user, address recipient) external onlyOwner nonReentrant {
+    function withdrawReferralRewardsFor(address user, address recipient) external onlyAdmin nonReentrant {
         require(user != address(0), "Invalid user address");
         require(recipient != address(0), "Invalid recipient address");
 

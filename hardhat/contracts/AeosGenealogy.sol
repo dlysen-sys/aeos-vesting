@@ -8,9 +8,9 @@ pragma solidity ^0.8.20;
  *         No earnings, no volume tracking, no ranks — pure genealogy
  */
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./AdminOwnable.sol";
 
-contract AeosGenealogy is Ownable {
+contract AeosGenealogy is AdminOwnable {
 
     /* ------------------------------------------------------------------ */
     /*                              STRUCTS                               */
@@ -32,7 +32,6 @@ contract AeosGenealogy is Ownable {
     /* ------------------------------------------------------------------ */
 
     mapping(address => bool) public isUser;
-    mapping(address => bool) public isAdmin;
     mapping(address => AffiliateData) public affiliate;
     mapping(address => BinaryData) public binary;
     mapping(address => uint256) public lastCallBlock;
@@ -65,8 +64,6 @@ contract AeosGenealogy is Ownable {
         address newRight
     );
     event UserTraversalDepthReduced(address indexed user, uint256 newDepth);
-    event AdminAdded(address indexed admin);
-    event AdminRemoved(address indexed admin);
 
     /* ------------------------------------------------------------------ */
     /*                              MODIFIERS                             */
@@ -81,11 +78,6 @@ contract AeosGenealogy is Ownable {
         );
         lastCallBlock[msg.sender] = block.number;
         lastCallTime[msg.sender] = block.timestamp;
-        _;
-    }
-
-    modifier onlyAdmin() {
-        require(msg.sender == owner() || isAdmin[msg.sender], "NOT_AUTHORIZED_ADMIN");
         _;
     }
 
@@ -586,38 +578,17 @@ contract AeosGenealogy is Ownable {
     }
 
     /* ================================================================ */
-    /*                     ADMIN MANAGEMENT (OWNER ONLY)               */
+    /*                     ADMIN MANAGEMENT — GENEALOGY OVERRIDE       */
     /* ================================================================ */
 
     /**
-     * @notice Add an admin address (owner only)
-     * @param adminAddress The address to grant admin privileges
+     * @notice Override: root user cannot be removed from admin list.
      */
-    function addAdmin(address adminAddress) external onlyOwner {
-        require(adminAddress != address(0), "ZERO_ADDRESS");
-        require(!isAdmin[adminAddress], "ALREADY_ADMIN");
-        isAdmin[adminAddress] = true;
-        emit AdminAdded(adminAddress);
-    }
-
-    /**
-     * @notice Remove an admin address (owner only)
-     * @param adminAddress The address to revoke admin privileges
-     */
-    function removeAdmin(address adminAddress) external onlyOwner {
+    function removeAdmin(address adminAddress) external override onlyOwner {
         require(adminAddress != address(0), "ZERO_ADDRESS");
         require(adminAddress != root, "CANNOT_REMOVE_ROOT_ADMIN");
         require(isAdmin[adminAddress], "NOT_ADMIN");
         isAdmin[adminAddress] = false;
         emit AdminRemoved(adminAddress);
-    }
-
-    /**
-     * @notice Check if an address is admin (owner or in admin mapping)
-     * @param addr The address to check
-     * @return True if address is owner or designated admin
-     */
-    function checkIsAdmin(address addr) external view returns (bool) {
-        return addr == owner() || isAdmin[addr];
     }
 }

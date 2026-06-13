@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./AdminOwnable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IAEOS.sol";
 
@@ -14,7 +14,7 @@ import "./interfaces/IAEOS.sol";
  * - Ecosystem Development: 15% (150M) — 10% instant, 10% yearly
  * - Community Growth: 5% (50M) — 5% instant, 5% quarterly
  */
-contract AeosVestingReserves is Ownable {
+contract AeosVestingReserves is AdminOwnable {
     using SafeERC20 for IAEOS;
 
     address private constant AEOS_ADDRESS = 0x89417b107aD0eF0Ce0dA82c5d6fD6c81F6e0d25A;
@@ -113,7 +113,7 @@ contract AeosVestingReserves is Ownable {
 
     // ==================== Treasury ====================
 
-    function depositTreasuryTokens(uint256 amount) external onlyOwner {
+    function depositTreasuryTokens(uint256 amount) external onlyAdmin {
         require(amount > 0, "Amount must be > 0");
         require(treasuryDeposited + amount <= TREASURY_ALLOCATION, "Exceeds treasury allocation");
 
@@ -128,7 +128,7 @@ contract AeosVestingReserves is Ownable {
 
     // ==================== Liquidity ====================
 
-    function depositLiquidityTokens(uint256 amount) external onlyOwner {
+    function depositLiquidityTokens(uint256 amount) external onlyAdmin {
         require(amount > 0, "Amount must be > 0");
         require(liquidityDeposited + amount <= LIQUIDITY_ALLOCATION, "Exceeds liquidity allocation");
 
@@ -137,7 +137,7 @@ contract AeosVestingReserves is Ownable {
         emit LiquidityDeposited(amount);
     }
 
-    function releaseLiquidityTokens() external onlyOwner {
+    function releaseLiquidityTokens() external onlyAdmin {
         uint256 initialAmount = (LIQUIDITY_ALLOCATION * LIQUIDITY_INITIAL_PERCENT) / 10000;
 
         if (liquidityRelease.released == 0 && aeosToken.balanceOf(address(this)) >= initialAmount) {
@@ -173,7 +173,7 @@ contract AeosVestingReserves is Ownable {
 
     // ==================== Community Incentives ====================
 
-    function depositCommunityIncentivesTokens(uint256 amount) external onlyOwner {
+    function depositCommunityIncentivesTokens(uint256 amount) external onlyAdmin {
         require(amount > 0, "Amount must be > 0");
         require(communityIncentivesDeposited + amount <= COMMUNITY_INCENTIVES_ALLOCATION, "Exceeds community incentives allocation");
 
@@ -188,7 +188,7 @@ contract AeosVestingReserves is Ownable {
 
     // ==================== Ecosystem Development ====================
 
-    function depositEcosystemTokens(uint256 amount) external onlyOwner {
+    function depositEcosystemTokens(uint256 amount) external onlyAdmin {
         require(amount > 0, "Amount must be > 0");
         require(ecosystemDeposited + amount <= ECOSYSTEM_ALLOCATION, "Exceeds ecosystem allocation");
 
@@ -197,7 +197,7 @@ contract AeosVestingReserves is Ownable {
         emit EcosystemDeposited(amount);
     }
 
-    function releaseEcosystemTokens() external onlyOwner {
+    function releaseEcosystemTokens() external onlyAdmin {
         uint256 initialAmount = (ECOSYSTEM_ALLOCATION * ECOSYSTEM_INITIAL_PERCENT) / 10000;
 
         if (ecosystemRelease.released == 0 && aeosToken.balanceOf(address(this)) >= initialAmount) {
@@ -233,7 +233,7 @@ contract AeosVestingReserves is Ownable {
 
     // ==================== Community Growth ====================
 
-    function depositCommunityGrowthTokens(uint256 amount) external onlyOwner {
+    function depositCommunityGrowthTokens(uint256 amount) external onlyAdmin {
         require(amount > 0, "Amount must be > 0");
         require(communityGrowthDeposited + amount <= COMMUNITY_GROWTH_ALLOCATION, "Exceeds community growth allocation");
 
@@ -242,7 +242,7 @@ contract AeosVestingReserves is Ownable {
         emit CommunityGrowthDeposited(amount);
     }
 
-    function releaseCommunityGrowthTokens() external onlyOwner {
+    function releaseCommunityGrowthTokens() external onlyAdmin {
         uint256 initialAmount = (COMMUNITY_GROWTH_ALLOCATION * COMMUNITY_GROWTH_INITIAL_PERCENT) / 10000;
 
         if (communityGrowthRelease.released == 0 && aeosToken.balanceOf(address(this)) >= initialAmount) {
@@ -278,31 +278,31 @@ contract AeosVestingReserves is Ownable {
 
     // ==================== Wallet Management ====================
 
-    function setTreasuryWallet(address _newWallet) external onlyOwner {
+    function setTreasuryWallet(address _newWallet) external onlyAdmin {
         require(_newWallet != address(0), "Invalid address");
         treasuryWallet = _newWallet;
         emit TreasuryWalletUpdated(_newWallet);
     }
 
-    function setLiquidityWallet(address _newWallet) external onlyOwner {
+    function setLiquidityWallet(address _newWallet) external onlyAdmin {
         require(_newWallet != address(0), "Invalid address");
         liquidityWallet = _newWallet;
         emit LiquidityWalletUpdated(_newWallet);
     }
 
-    function setCommunityIncentivesWallet(address _newWallet) external onlyOwner {
+    function setCommunityIncentivesWallet(address _newWallet) external onlyAdmin {
         require(_newWallet != address(0), "Invalid address");
         communityIncentivesWallet = _newWallet;
         emit CommunityIncentivesWalletUpdated(_newWallet);
     }
 
-    function setEcosystemWallet(address _newWallet) external onlyOwner {
+    function setEcosystemWallet(address _newWallet) external onlyAdmin {
         require(_newWallet != address(0), "Invalid address");
         ecosystemWallet = _newWallet;
         emit EcosystemWalletUpdated(_newWallet);
     }
 
-    function setCommunityGrowthWallet(address _newWallet) external onlyOwner {
+    function setCommunityGrowthWallet(address _newWallet) external onlyAdmin {
         require(_newWallet != address(0), "Invalid address");
         communityGrowthWallet = _newWallet;
         emit CommunityGrowthWalletUpdated(_newWallet);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./AdminOwnable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IAEOS.sol";
 import "./AeosVestingTeam.sol";
@@ -24,7 +24,7 @@ import "./AeosVestingReserves.sol";
  *
  * Total: 1,000,000,000 AEOS
  */
-contract AeosVesting is Ownable {
+contract AeosVesting is AdminOwnable {
     // Module contracts
     AeosVestingTeam public teamModule;
     AeosVestingStrategic public strategicModule;
@@ -64,8 +64,8 @@ contract AeosVesting is Ownable {
         // Deploy Team module
         teamModule = new AeosVestingTeam(aeosToken);
 
-        // Deploy Strategic Investors module
-        strategicModule = new AeosVestingStrategic(aeosToken, usdtToken);
+        // Deploy Strategic Investors module (genealogy set to address(0), can be updated later)
+        strategicModule = new AeosVestingStrategic(aeosToken, usdtToken, address(0));
 
         // Deploy Advisors module
         advisorsModule = new AeosVestingAdvisors(aeosToken, usdtToken);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import "./AdminOwnable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {
@@ -17,7 +17,7 @@ import "./interfaces/ISwapRouter.sol";
 import "./libraries/TickMath.sol";
 import "./libraries/FullMath.sol";
 
-contract LIQUIDITY is Ownable, ReentrancyGuard, IERC721Receiver {
+contract LIQUIDITY is AdminOwnable, ReentrancyGuard, IERC721Receiver {
     using SafeERC20 for IERC20;
 
     address private constant USDT = 0x55d398326f99059fF775485246999027B3197955;
@@ -294,7 +294,7 @@ contract LIQUIDITY is Ownable, ReentrancyGuard, IERC721Receiver {
 
     /* ===================== #3a INITIALIZE APPROVAL ===================== */
     /// @dev Grant unlimited approval to position manager and swap router (production only)
-    function initializeApproval() external onlyOwner nonReentrant {
+    function initializeApproval() external onlyAdmin nonReentrant {
         IERC20(USDT).safeApprove(address(POSITION_MANAGER), type(uint256).max);
         IERC20(AEOS).safeApprove(address(POSITION_MANAGER), type(uint256).max);
         IERC20(USDT).safeApprove(address(SWAP_ROUTER), type(uint256).max);
@@ -307,7 +307,7 @@ contract LIQUIDITY is Ownable, ReentrancyGuard, IERC721Receiver {
      * ⚠️ HIGH RISK: Unlimited approvals can drain all tokens if external contracts exploited
      * Only callable by owner in emergency situations
      */
-    function revokeApproval() external onlyOwner nonReentrant {
+    function revokeApproval() external onlyAdmin nonReentrant {
         IERC20(USDT).safeApprove(address(POSITION_MANAGER), 0);
         IERC20(AEOS).safeApprove(address(POSITION_MANAGER), 0);
         IERC20(USDT).safeApprove(address(SWAP_ROUTER), 0);
@@ -317,8 +317,7 @@ contract LIQUIDITY is Ownable, ReentrancyGuard, IERC721Receiver {
     /* ===================== #4 INITIALIZE POOL ===================== */
     function initializePool(
         address _poolAddress
-    ) external onlyOwner nonReentrant {
-        // Restricted to onlyOwner
+    ) external onlyAdmin nonReentrant {
         POOL = IPancakeV3Pool(_poolAddress);
         FEE = POOL.fee();
         TOKEN0 = POOL.token0();
@@ -326,7 +325,7 @@ contract LIQUIDITY is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /* ===================== #5 INITIALIZE POSITION ===================== */
-    function initializePosition() external onlyOwner nonReentrant {
+    function initializePosition() external onlyAdmin nonReentrant {
         require(address(POOL) != address(0), "Pool not initialized");
         require(TOKENID == 0, "Position already exists");
         uint256 aeosBal = IERC20(AEOS).balanceOf(address(this));
@@ -418,7 +417,7 @@ contract LIQUIDITY is Ownable, ReentrancyGuard, IERC721Receiver {
     /* ===================== COLLECT FEES ===================== */
     function collectFees()
         external
-        onlyOwner
+        onlyAdmin
         nonReentrant
         returns (uint256 amount0, uint256 amount1)
     {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./AdminOwnable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IAEOS.sol";
@@ -14,7 +14,7 @@ import "./libraries/VestingMath.sol";
  * - 2% monthly unlock (50 months total)
  * - Owner-only assignment and deposits
  */
-contract AeosVestingTeam is Ownable, ReentrancyGuard {
+contract AeosVestingTeam is AdminOwnable, ReentrancyGuard {
     using SafeERC20 for IAEOS;
 
     IAEOS public aeosToken;
@@ -64,7 +64,7 @@ contract AeosVestingTeam is Ownable, ReentrancyGuard {
     /**
      * @dev Assign vesting to team member (owner only)
      */
-    function assignTeamMember(address member, uint256 amount) external onlyOwner {
+    function assignTeamMember(address member, uint256 amount) external onlyAdmin {
         require(member != address(0), "Invalid member address");
         require(amount > 0, "Amount must be > 0");
         require(totalDeposited >= amount, "Insufficient tokens deposited");
@@ -86,7 +86,7 @@ contract AeosVestingTeam is Ownable, ReentrancyGuard {
     /**
      * @dev Deposit AEOS tokens for team vesting (owner only)
      */
-    function depositTeamTokens(uint256 amount) external onlyOwner nonReentrant {
+    function depositTeamTokens(uint256 amount) external onlyAdmin nonReentrant {
         require(amount > 0, "Amount must be > 0");
         require(totalDeposited + amount <= ALLOCATION, "Exceeds team allocation");
 

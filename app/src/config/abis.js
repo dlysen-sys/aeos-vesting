@@ -2,6 +2,51 @@
  * Smart Contract ABIs for AEOS Vesting
  */
 
+// ── AdminOwnable ABI (shared across all contracts) ──────────────────────────
+// All AEOS contracts extend AdminOwnable — these functions are available on every contract.
+export const ADMIN_OWNABLE_ABI = [
+  {
+    inputs: [{ internalType: 'address', name: 'adminAddress', type: 'address' }],
+    name: 'addAdmin',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'adminAddress', type: 'address' }],
+    name: 'removeAdmin',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'addr', type: 'address' }],
+    name: 'checkIsAdmin',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'isAdmin',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    anonymous: false,
+    inputs: [{ indexed: true, internalType: 'address', name: 'admin', type: 'address' }],
+    name: 'AdminAdded',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [{ indexed: true, internalType: 'address', name: 'admin', type: 'address' }],
+    name: 'AdminRemoved',
+    type: 'event',
+  },
+]
+
 // ERC20 Standard ABI (for AEOS & USDT tokens) - Updated for Wagmi v2
 export const ERC20_ABI = [
   {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./AdminOwnable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IAEOS.sol";
@@ -17,7 +17,7 @@ import "./libraries/VestingMath.sol";
  * - 2.5% monthly unlock (48 months total)
  * - Per-investment release (no looping, gas efficient)
  */
-contract AeosVestingAdvisors is Ownable, ReentrancyGuard {
+contract AeosVestingAdvisors is AdminOwnable, ReentrancyGuard {
     using SafeERC20 for IAEOS;
     using SafeERC20 for IUSDT;
 
@@ -482,7 +482,7 @@ contract AeosVestingAdvisors is Ownable, ReentrancyGuard {
     /**
      * @dev Set treasury wallet (owner only)
      */
-    function setTreasuryWallet(address _newTreasury) external onlyOwner {
+    function setTreasuryWallet(address _newTreasury) external onlyAdmin {
         require(_newTreasury != address(0), "Invalid treasury address");
         treasuryWallet = _newTreasury;
         emit TreasuryWalletUpdated(_newTreasury);
@@ -491,7 +491,7 @@ contract AeosVestingAdvisors is Ownable, ReentrancyGuard {
     /**
      * @dev Set liquidity pool contract for USDT routing (owner only)
      */
-    function setLiquidityContract(address _liquidityAddress) external onlyOwner {
+    function setLiquidityContract(address _liquidityAddress) external onlyAdmin {
         require(_liquidityAddress != address(0), "Invalid liquidity address");
         liquidity = ILiquidity(_liquidityAddress);
     }
@@ -499,7 +499,7 @@ contract AeosVestingAdvisors is Ownable, ReentrancyGuard {
     /**
      * @dev Withdraw collected USDT to treasury (owner only)
      */
-    function withdrawUsdt(uint256 amount) external onlyOwner nonReentrant {
+    function withdrawUsdt(uint256 amount) external onlyAdmin nonReentrant {
         require(amount > 0, "Amount must be > 0");
         require(usdtToken.balanceOf(address(this)) >= amount, "Insufficient USDT");
 
@@ -525,7 +525,7 @@ contract AeosVestingAdvisors is Ownable, ReentrancyGuard {
         uint256 newUnlockPercent,
         uint256 newVestingMonths,
         uint256 newWithdrawalPeriod
-    ) external onlyOwner {
+    ) external onlyAdmin {
         // Validate all parameters
         require(newVestingPrice > 0, "Vesting price must be > 0");
         require(newMinInvestment > 0, "Minimum investment must be > 0");
@@ -555,7 +555,7 @@ contract AeosVestingAdvisors is Ownable, ReentrancyGuard {
     /**
      * @dev Set liquidity slippage tolerance (owner only)
      */
-    function setSlippageTolerance(uint256 newSlippageBps) external onlyOwner {
+    function setSlippageTolerance(uint256 newSlippageBps) external onlyAdmin {
         require(newSlippageBps > 0 && newSlippageBps <= BPS, "Slippage must be 1-BPS (0.01%-100%)");
         slippageBps = newSlippageBps;
     }
@@ -564,7 +564,7 @@ contract AeosVestingAdvisors is Ownable, ReentrancyGuard {
      * @dev Set USDT split percentages in basis points (owner only)
      * Example: 8000 bps = 80%, 2000 bps = 20%
      */
-    function setUsdtSplitBps(uint256 newLiquidityBps, uint256 newTreasuryBps) external onlyOwner {
+    function setUsdtSplitBps(uint256 newLiquidityBps, uint256 newTreasuryBps) external onlyAdmin {
         require(newLiquidityBps + newTreasuryBps == BPS, "Basis points must sum to BPS (100%)");
         require(newLiquidityBps > 0 && newTreasuryBps > 0, "Both amounts must be > 0");
         usdtToLiquidityBps = newLiquidityBps;
