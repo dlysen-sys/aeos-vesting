@@ -6,20 +6,29 @@ require("dotenv").config();
 
 module.exports = {
   solidity: {
-    version: "0.8.24",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 50,  // Lower runs = smaller bytecode (for deployment size)
-        details: {
-          yul: true,
-          yulDetails: {
-            optimizerSteps: "u",
+    compilers: [
+      {
+        version: "0.8.25",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 50,
+            details: {
+              yul: true,
+              yulDetails: { optimizerSteps: "u" },
+            },
           },
+          viaIR: true,
         },
       },
-      viaIR: true,  // Enable IR compilation for complex contracts
-    },
+      {
+        // PancakeSwap interfaces use ^0.8.0 — keep a compiler for them
+        version: "0.8.0",
+        settings: {
+          optimizer: { enabled: true, runs: 200 },
+        },
+      },
+    ],
   },
   networks: {
     bsc: {

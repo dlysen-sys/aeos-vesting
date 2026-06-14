@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.25;
 
 library VestingMath {
     uint256 private constant BPS = 10000; // Basis points denominator (10000 bps = 100%)
