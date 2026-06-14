@@ -113,7 +113,7 @@ export default function Navbar({ isConnected, address, disconnect, connect }) {
   }
 
   return (
-    <nav className="sticky top-0 z-50 py-4" style={{  borderBottom: '0px solid var(--border)' }}>
+    <nav className="sticky top-0 z-50 py-4 bg-white"  >
       <div className="max-w-6xl mx-auto px-4 flex justify-between items-center">
         <div className="flex items-center gap-8">
           <h1 className="text-2xl font-bold" style={{ color: 'var(--primary)' }}>AEOS Vesting</h1>
@@ -197,11 +197,6 @@ export default function Navbar({ isConnected, address, disconnect, connect }) {
                 </Link>
               )
             })}
-          </div>
-
-          {/* Admin Functions Info */}
-          <div className="max-w-6xl mx-auto px-4 py-2 text-xs" style={{ color: '#A0AEC0' }}>
-            <span>Admin Functions: Deposit • Withdraw • Funding Status • Settings • Genealogy</span>
           </div>
 
           {/* Wrap toggle drawer — mobile only */}
