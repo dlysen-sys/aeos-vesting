@@ -1,3 +1,4 @@
+import PageLayout from '../components/PageLayout'
 import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import { usePublicClient } from 'wagmi'
@@ -365,7 +366,7 @@ export default function Strategic() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-16">
+    <PageLayout>
       <div className="space-y-12">
         <div>
           <h2 className="text-3xl font-bold mb-2">{STRATEGIC_CONFIG.title}</h2>
@@ -527,7 +528,7 @@ export default function Strategic() {
           </>
         )}
       </div>
-    </div>
+    </PageLayout>
   )
 }
 

@@ -1,3 +1,4 @@
+import PageLayout from '../components/PageLayout'
 import { useState, useEffect } from 'react'
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi'
 import { useAeosVesting } from '../hooks/useAeosVesting'
@@ -567,7 +568,7 @@ export default function AdminStrategic() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-16">
+    <PageLayout>
       <div className="space-y-8">
         {!address && (
         <div style={{ backgroundColor: '#EF4444', padding: '16px', borderRadius: '8px', color: 'white', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1300,6 +1301,6 @@ export default function AdminStrategic() {
         </div>
       </div>
     </div>
-    </div>
+    </PageLayout>
   )
 }

@@ -1,3 +1,4 @@
+import PageLayout from '../components/PageLayout'
 import { useState } from 'react'
 import { useAccount } from 'wagmi'
 import { useAeosVesting } from '../hooks/useAeosVesting'
@@ -64,7 +65,7 @@ export default function Advisors() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-16">
+    <PageLayout>
       <div className="space-y-8">
         <div>
           <h2 className="text-3xl font-bold mb-2">{ADVISOR_CONFIG.title}</h2>
@@ -173,7 +174,7 @@ export default function Advisors() {
         </>
       )}
       </div>
-    </div>
+    </PageLayout>
   )
 }
 

@@ -1,3 +1,4 @@
+import PageLayout from '../components/PageLayout'
 import { useState } from 'react'
 import { useAccount } from 'wagmi'
 import { AlertCircle, Upload, Download, TrendingUp, Settings, Shield } from 'lucide-react'
@@ -17,7 +18,7 @@ export default function AdminTeam() {
   ]
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-16">
+    <PageLayout>
       <div className="space-y-8">
         {!address && (
           <div style={{ backgroundColor: '#EF4444', padding: '16px', borderRadius: '8px', color: 'white', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -65,6 +66,6 @@ export default function AdminTeam() {
           </div>
         </div>
       </div>
-    </div>
+    </PageLayout>
   )
 }

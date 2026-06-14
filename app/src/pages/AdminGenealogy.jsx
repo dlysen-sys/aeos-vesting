@@ -1,3 +1,4 @@
+import PageLayout from '../components/PageLayout'
 import { useState, useEffect } from 'react'
 import { useAccount, usePublicClient } from 'wagmi'
 import { useAeosGenealogy } from '../hooks/useAeosGenealogy'
@@ -228,7 +229,7 @@ export default function AdminGenealogy() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-16">
+    <PageLayout>
     <div className="space-y-8">
       <div className="flex items-center gap-3 mb-6">
         <Users className="w-6 h-6 text-yellow-400" />
@@ -756,6 +757,6 @@ export default function AdminGenealogy() {
       )}
 
     </div>
-    </div>
+    </PageLayout>
   )
 }

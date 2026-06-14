@@ -113,8 +113,8 @@ export default function Navbar({ isConnected, address, disconnect, connect }) {
   }
 
   return (
-    <nav className="sticky top-0 z-50 py-4 bg-white"  >
-      <div className="max-w-6xl mx-auto px-4 flex justify-between items-center">
+    <nav className="sticky top-0 z-50" style={{ backgroundColor: 'var(--background)', borderBottom: '1px solid var(--border)' }}>
+      <div className="h-16 max-w-6xl mx-auto px-4 flex justify-between items-center">
         <div className="flex items-center gap-8">
           <h1 className="text-2xl font-bold" style={{ color: 'var(--primary)' }}>AEOS Vesting</h1>
           {isConnected && (
@@ -175,7 +175,7 @@ export default function Navbar({ isConnected, address, disconnect, connect }) {
 
       {/* Admin Submenu — shown only on /admin routes, owner only */}
       {isOwner && location.pathname.startsWith('/admin') && isConnected && (
-        <div style={{ borderTop: '1px solid var(--border)', backgroundColor: 'var(--muted)' }}>
+        <div style={{ backgroundColor: 'var(--muted)' }}>
           {/* Admin Module Tabs */}
           <div className="max-w-6xl mx-auto px-4 py-2 flex gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
             {ADMIN_MODULES.map(({ path, label, color }) => {

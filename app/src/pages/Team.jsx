@@ -1,3 +1,4 @@
+import PageLayout from '../components/PageLayout'
 import { useAccount } from 'wagmi'
 import { AlertCircle } from 'lucide-react'
 
@@ -5,7 +6,7 @@ export default function Team() {
   const { address } = useAccount()
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-16">
+    <PageLayout>
       <div className="space-y-8">
       {!address && (
         <div style={{ backgroundColor: '#EF4444', padding: '16px', borderRadius: '8px', color: 'white', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -37,6 +38,6 @@ export default function Team() {
         <p style={{ color: '#A0AEC0' }}>Team member details coming soon...</p>
       </div>
       </div>
-    </div>
+    </PageLayout>
   )
 }
